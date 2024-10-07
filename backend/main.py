@@ -1,4 +1,5 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status , WebSocket, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -7,10 +8,20 @@ import schemas
 import crud
 import auth
 import database
+import data
+import notification
 
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Add your frontend URL here
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -39,3 +50,33 @@ async def read_users_me(current_user: schemas.User = Depends(auth.get_current_ac
 @app.get("/users/me/items")
 async def read_own_items(current_user: schemas.User = Depends(auth.get_current_active_user)):
     return [{"item_id": 1, "owner": current_user}]
+
+
+@app.get("/machine-plant-count")
+async def get_machine_and_plant_count(current_user: dict = Depends(auth.get_current_active_user)):
+    try:
+        res = data.get_distinct_machine_count()
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/plant-count")
+async def get_machine_and_plant_count(current_user: dict = Depends(auth.get_current_active_user)):
+    try:
+        res = data.get_distinct_plant_count()
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.websocket("/ws/data-stream")
+async def websocket_endpoint(websocket: WebSocket, machineId: int = Query(...), plantId: int = Query(...)):
+    await data.send_data_to_client(websocket,machineId,plantId)
+    
+@app.websocket("/ws/notification-stream")
+async def websocket_notification_endpoint(websocket: WebSocket):
+    await notification.send_data_to_client(websocket)
+    
+    
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("Shutting down...")

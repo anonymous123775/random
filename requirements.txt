@@ -1,8 +1,8 @@
 fastapi
 uvicorn
 sqlalchemy
-sqlite3
 passlib
 python-jose
 streamlit
 requests
+bcrypt
