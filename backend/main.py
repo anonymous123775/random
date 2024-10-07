@@ -10,6 +10,8 @@ import auth
 import database
 import data
 import notification
+import asyncio
+from kpi import calculate_kpis
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -24,6 +26,16 @@ app.add_middleware(
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# Startup event to run KPI calculation
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(kpi_scheduler())
+    
+async def kpi_scheduler():
+    while True:
+        await calculate_kpis()
+        await asyncio.sleep(10)  # Sleep for 15 minutes
 
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):

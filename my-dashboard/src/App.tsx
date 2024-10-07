@@ -9,7 +9,7 @@ const App: React.FC = () => {
 
   return (
     <div className="App">
-      {/* <Dashboard /> */}
+      <Dashboard />
       
     </div>
   );

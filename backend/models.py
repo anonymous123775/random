@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Float
 from database import Base
 from datetime import datetime
 
@@ -22,3 +22,22 @@ class Notification(Base):
     threshold = Column(String)  # You can change the type according to your needs
     timestamp = Column(DateTime, default=datetime.utcnow)
     status = Column(String, default="unresolved")
+    
+class KPI(Base):
+    __tablename__ = "kpis"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    machine_id = Column(Integer, nullable=False)
+    plant_id = Column(Integer, nullable=False)
+    uptime = Column(Float, nullable=True)
+    downtime = Column(Float, nullable=True)
+    failure_rate = Column(Float, nullable=True)
+    num_alerts_triggered = Column(Integer, nullable=True)
+    last_processed_timestamp = Column(DateTime, nullable=False)
+    
+    def __repr__(self):
+        return (f"<KPI(plant_id={self.plant_id}, machine_id={self.machine_id}, "
+                f"uptime={self.uptime}, downtime={self.downtime}, "
+                f"num_alerts_triggered={self.num_alerts_triggered}, "
+                f"failure_rate={self.failure_rate}, "
+                f"last_processed_timestamp={self.last_processed_timestamp})>")

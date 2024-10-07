@@ -96,7 +96,8 @@ def on_message(client, userdata, msg):
         data["temperature"] = float(data["temperature"])
         data["power_supply"] = float(data["power_supply"])
         data["vibration"] = float(data["vibration"])
-
+        machine_status = 1 if data["machine_status"].lower() == "online" else 0
+        print(machine_status)
         # Prepare the data for InfluxDB
         influx_data = [
             {
@@ -106,7 +107,7 @@ def on_message(client, userdata, msg):
                     "humidity": data["humidity"],
                     "power_supply": data["power_supply"],
                     "vibration": data["vibration"],
-                    "machine_status": data["machine_status"],
+                    "machine_status": int(machine_status),
                     "plant_id": data["plant_id"],
                     "machine_id": data["machine_id"]
                 },
