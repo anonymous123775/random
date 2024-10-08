@@ -48,10 +48,10 @@ async def calculate_kpis():
                 data_results = client.query(data_query)
 
                 # Calculate KPIs based on the data
-                uptime, downtime, num_alerts, failure_rate = await calculate_kpi_values(data_results, machine_id, plant_id, start_time, current_time)
+                uptime, downtime, num_alerts = await calculate_kpi_values(data_results, machine_id, plant_id, start_time, current_time)
 
                 # Save/update KPI entry in the SQLite database
-                save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts, failure_rate, current_time)
+                save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts, current_time)
 
         print("KPIs calculated and stored successfully.")
 
@@ -64,15 +64,18 @@ async def calculate_kpi_values(data_results, machine_id, plant_id, start_time, e
     uptime = 0
     downtime = 0
     num_alerts = 0
-    failure_events = 0
-    total_duration = 0
+    # failure_events = 0
+    # total_duration = 0
 
     points = list(data_results)
+
     # print(points)
+
     if not points:
-        return uptime, downtime, num_alerts, 0.0
+        return uptime, downtime, num_alerts
     
     points = points[0]
+    # print(points)
 
     # Iterate through data points to calculate uptime, downtime, and alerts
     if len(points) > 1:
@@ -89,23 +92,23 @@ async def calculate_kpi_values(data_results, machine_id, plant_id, start_time, e
                     uptime += duration
                 else:
                     downtime += duration
-                    failure_events += 1
+                    # failure_events += 1
 
-                total_duration += duration
+                # total_duration += duration
     elif len(points) == 1:
         start_time_point = start_time
         end_time_point = datetime.strptime(points[0]['time'], "%Y-%m-%dT%H:%M:%S.%fZ")
         duration = (end_time_point - start_time_point).total_seconds() / 60
 
-        if points['machine_status'] == 1:  # Assuming machine_status is 1 for 'online'
+        if points[0]['machine_status'] == 1:  # Assuming machine_status is 1 for 'online'
             uptime += duration
         else:
             downtime += duration
-            failure_events += 1
+            # failure_events += 1
 
-        total_duration += duration
+        # total_duration += duration
         
-    print(total_duration)
+    # print(total_duration)
     # Calculate number of alerts triggered from the notifications stored in the database
     db: Session = next(get_db())
     try:
@@ -119,11 +122,11 @@ async def calculate_kpi_values(data_results, machine_id, plant_id, start_time, e
         db.close()
 
     # Calculate failure rate
-    failure_rate = failure_events / total_duration if total_duration > 0 else 0.0
+    # failure_rate = failure_events / total_duration if total_duration > 0 else 0.0
 
-    return uptime, downtime, num_alerts, failure_rate
+    return uptime, downtime, num_alerts
 
-def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts, failure_rate, timestamp):
+def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts , timestamp):
     # Ensure timestamp is a datetime object
     if not isinstance(timestamp, datetime):
         timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -138,14 +141,17 @@ def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts, failur
         # Accumulate the new values with the previous values
         existing_entry.uptime += uptime
         existing_entry.downtime += downtime
+        total_duration = existing_entry.uptime + existing_entry.downtime
         existing_entry.num_alerts_triggered += num_alerts
-        existing_entry.failure_rate = failure_rate
+        existing_entry.failure_rate = existing_entry.num_alerts_triggered / total_duration if total_duration > 0 else 0.0
         existing_entry.last_processed_timestamp = timestamp
         db.commit()
-        print(f"Updated KPI data for plant_id: {plant_id}, machine_id: {machine_id}")
+        # print(f"Updated KPI data for plant_id: {plant_id}, machine_id: {machine_id}")
         print(f"Updated data: {existing_entry}")
     else:
         # Create a new entry
+        total_duration = uptime + downtime
+        failure_rate = num_alerts / total_duration
         new_kpi = KPI(
             plant_id=plant_id,
             machine_id=machine_id,
@@ -157,7 +163,7 @@ def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts, failur
         )
         db.add(new_kpi)
         db.commit()
-        print(f"Inserted new KPI data for plant_id: {plant_id}, machine_id: {machine_id}")
+        # print(f"Inserted new KPI data for plant_id: {plant_id}, machine_id: {machine_id}")
         print(f"Inserted data: {new_kpi}")
 
     print(f"KPI data saved for plant_id: {plant_id}, machine_id: {machine_id}")
