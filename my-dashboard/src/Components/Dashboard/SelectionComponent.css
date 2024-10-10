@@ -1,0 +1,24 @@
+/* SelectionComponent.css */
+.selection-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .selection-control {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+  }
+  
+  .selection-control label {
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .selection-control select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  

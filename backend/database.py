@@ -11,6 +11,7 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL,
                         max_overflow=20,  # Increase max overflow connections
                         pool_timeout=30,  # Adjust the timeout if needed
                     )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

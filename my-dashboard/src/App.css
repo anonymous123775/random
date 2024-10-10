@@ -36,3 +36,8 @@
     transform: rotate(360deg);
   }
 }
+
+/* App.css */
+body {
+  padding-top: 50px; /* Adjust based on the height of your navbar */
+}

@@ -9,8 +9,8 @@ broker = "localhost"
 port = 1883
 
 # Configuration
-NUM_PLANTS = 2
-NUM_MACHINES_PER_PLANT = 1
+NUM_PLANTS = 1
+NUM_MACHINES_PER_PLANT = 5
 FAULT_PROBABILITY = 0.06  # 60% chance for a machine to become faulty
 OFFLINE_PROBABILITY = 0.05  # 5% chance for a machine to go offline
 NORMAL_INTERVAL = 5  # Time interval for stable devices (in seconds)

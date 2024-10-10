@@ -53,7 +53,7 @@ async def calculate_kpis():
                 # Save/update KPI entry in the SQLite database
                 save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts, current_time)
 
-        print("KPIs calculated and stored successfully.")
+        # print("KPIs calculated and stored successfully.")
 
     except Exception as e:
         print(f"An error occurred while calculating KPIs: {e}")
@@ -141,13 +141,13 @@ def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts , times
         # Accumulate the new values with the previous values
         existing_entry.uptime += uptime
         existing_entry.downtime += downtime
-        total_duration = existing_entry.uptime + existing_entry.downtime
+        total_duration = existing_entry.uptime + existing_entry.downtime + uptime + downtime
         existing_entry.num_alerts_triggered += num_alerts
         existing_entry.failure_rate = existing_entry.num_alerts_triggered / total_duration if total_duration > 0 else 0.0
         existing_entry.last_processed_timestamp = timestamp
         db.commit()
         # print(f"Updated KPI data for plant_id: {plant_id}, machine_id: {machine_id}")
-        print(f"Updated data: {existing_entry}")
+        # print(f"Updated data: {existing_entry}")
     else:
         # Create a new entry
         total_duration = uptime + downtime
@@ -164,6 +164,27 @@ def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts , times
         db.add(new_kpi)
         db.commit()
         # print(f"Inserted new KPI data for plant_id: {plant_id}, machine_id: {machine_id}")
-        print(f"Inserted data: {new_kpi}")
+        # print(f"Inserted data: {new_kpi}")
 
-    print(f"KPI data saved for plant_id: {plant_id}, machine_id: {machine_id}")
+    # print(f"KPI data saved for plant_id: {plant_id}, machine_id: {machine_id}")
+
+
+def get_num_failures_month(db: Session, month: int, year: int, machine_id: str, plant_id: str):
+    start_date = datetime(year, month, 1)
+    end_date = (start_date + timedelta(days=32)).replace(day=1)  # First day of the next month
+    
+    alerts = db.query(Notification).filter(
+        Notification.timestamp >= start_date,
+        Notification.timestamp < end_date,
+        Notification.machine_id == machine_id,
+        Notification.plant_id == plant_id
+    ).all()
+    
+    # Initialize alert counts for all days in the month
+    alert_counts = {day: 0 for day in range(1, (end_date - start_date).days + 1)}
+    
+    for alert in alerts:
+        day_key = alert.timestamp.day
+        alert_counts[day_key] += 1
+    
+    return [{"day": day, "failures": count} for day, count in alert_counts.items()]

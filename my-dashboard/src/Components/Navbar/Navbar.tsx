@@ -1,44 +1,6 @@
-// import React from "react";
-// import { useNavigate } from "react-router-dom";
-// import "./Navbar.css"; // Adjust the path if needed
-
-// const Navbar: React.FC<{ isAuthenticated: boolean; onLogout: () => void }> = ({
-//   isAuthenticated,
-//   onLogout,
-// }) => {
-//   const navigate = useNavigate();
-
-//   const handleLogout = () => {
-//     // Call the logout function passed from parent
-//     onLogout();
-//     navigate("/auth"); // Redirect to auth page after logout
-//   };
-
-//   return (
-//     <nav className="navbar">
-//       <h1 className="logo">MyApp</h1>
-//       <ul>
-//         <li>
-//           <button onClick={() => navigate("/dashboard")}>Dashboard</button>
-//         </li>
-//         {isAuthenticated ? (
-//           <li>
-//             <button onClick={handleLogout}>Logout</button>
-//           </li>
-//         ) : (
-//           <li>
-//             <button onClick={() => navigate("/auth")}>Login</button>
-//           </li>
-//         )}
-//       </ul>
-//     </nav>
-//   );
-// };
-
-// export default Navbar;
-
-
 import React from 'react';
+import "./Navbar.css";
+import { useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
   isAuthenticated: boolean;
@@ -46,21 +8,49 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ isAuthenticated, onLogout }) => {
+
+  const navigate = useNavigate()
+
+  const handleLogoutClick = () =>{
+    onLogout();
+    navigate('/login');
+  }
+
   return (
-    <nav>
-      <h1>MyApp</h1>
-      <ul>
-        <li><a href="/">Home</a></li>
-        {isAuthenticated ? (
-          <>
-            <li><a href="/dashboard">Dashboard</a></li>
-            <li><button onClick={onLogout}>Logout</button></li>
-          </>
-        ) : (
-          <li><a href="/auth">Login</a></li>
-        )}
-      </ul>
-    </nav>
+    <header className="navbar navbar-inverse navbar-fixed-top bs-docs-nav" role="banner">
+      <div className="container">
+        <div className="navbar-header">
+          <button className="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+            <span className="sr-only">Toggle navigation</span>
+            <span className="icon-bar"></span>
+            <span className="icon-bar"></span>
+            <span className="icon-bar"></span>
+          </button>
+          <a href="/" className="navbar-brand">IOT</a>
+        </div>
+        <nav className="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+          <ul className="nav navbar-nav navbar-right">
+            {isAuthenticated ? (
+              <>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/notifications">Notification</a></li>
+                <li className="dropdown profile-menu">
+                  <a href="#" className="dropdown-toggle" data-toggle="dropdown">
+                    Profile <b className="caret"></b>
+                  </a>
+                  <ul className="dropdown-menu">
+                    <li><a href="/profile">My Profile</a></li>
+                    <li><a href="#" onClick={handleLogoutClick}>Logout</a></li>
+                  </ul>
+                </li>
+              </>
+            ) : (
+              <li><a href="/login">Login</a></li>
+            )}
+          </ul>
+        </nav>
+      </div>
+    </header>
   );
 };
 

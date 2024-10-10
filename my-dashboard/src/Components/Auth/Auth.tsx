@@ -4,7 +4,11 @@ import { loginUser, registerUser } from "../Services/api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css"; // Import toastify styles
 
-const Auth: React.FC = () => {
+interface AuthProps {
+  onAuthSuccess: () => void;
+}
+
+const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true); // Toggle between login and signup
   const [formData, setFormData] = useState({
     username: "",
@@ -26,6 +30,7 @@ const Auth: React.FC = () => {
         const response = await loginUser(formData.username, formData.password);
         console.log("Login successful:", response);
         // onLogin(); // Call the onLogin prop to update authentication state
+        onAuthSuccess();
         toast.success("Login successful!");
       } else {
         // Signup API call

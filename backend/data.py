@@ -51,8 +51,8 @@
 
 from influxdb import InfluxDBClient
 import asyncio
-from fastapi import WebSocket
-from datetime import datetime
+from fastapi import WebSocket, HTTPException
+from datetime import datetime, timedelta
 
 # InfluxDB settings
 INFLUXDB_HOST = "localhost"
@@ -63,19 +63,66 @@ INFLUXDB_DATABASE = "iot_machine_data"
 client = InfluxDBClient(host=INFLUXDB_HOST, port=INFLUXDB_PORT, database=INFLUXDB_DATABASE)
 
 
+async def get_historical_data(machineId: int, plantId: int, timeframe: str):
+    try:
+        # Map timeframe to duration
+        # print(machineId,plantId,timeframe)
+        unit_map = {
+            'm': 'minutes',
+            'h': 'hours',
+        }
+        unit = unit_map[timeframe[-1]]
+        duration = int(timeframe[:-1])
+        start_time = datetime.utcnow() - timedelta(**{unit: duration})
+
+        # Query to fetch historical data
+        query = f'''
+            SELECT * FROM "machine_data"
+            WHERE "machine_id" = {machineId} AND "plant_id" = {plantId}
+            AND time >= '{start_time.isoformat()}Z'
+            ORDER BY time ASC
+        '''
+        
+        # print(query)
+        
+        result = client.query(query)
+        
+        # print(list(result)[0])
+        
+        
+        data = []
+        if result:
+            for point in list(result)[0]:
+                data.append({
+                    "time": point['time'],
+                    "machine_id": point['machine_id'],
+                    "plant_id": point['plant_id'],
+                    "temperature": point['temperature'],
+                    "humidity": point['humidity'],
+                    "power_supply": point['power_supply'],
+                    "vibration": point['vibration'],
+                    "machine_status": point['machine_status'],
+                })
+        return data
+    except Exception as e:
+        # print(query)
+        print(f"An error occurred while querying InfluxDB: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching historical data")
+
 def get_distinct_machine_count():
     try:
         # Query for distinct machine IDs
-        results = client.query("SHOW TAG VALUES ON \"iot_machine_data\" WITH KEY = \"machine_id\"")
-        print(results)  # This will help you debug and see the structure of the results
+        results = client.query("SELECT DISTINCT(\"machine_id\") FROM \"machine_data\"")
+        # print((results))  # This will help you debug and see the structure of the results
         
         # Extract the machine IDs
         # The results are stored in a nested structure, we need to loop through to get the values
-        machine_ids = [item['value'] for item in list(results)[0]]
-        print(machine_ids)
-        # Count distinct machine IDs
-        distinct_count = len(machine_ids)
-        return {"distinct_machine_count": distinct_count}   
+        if list(results):
+            machine_ids = [item['distinct'] for item in list(results)[0]]
+            print(machine_ids)
+            # Count distinct machine IDs
+            # distinct_count = len(machine_ids)
+            return {"distinct_machine_count": machine_ids}   
     except Exception as e:
         print(f"An error occurred: {e}")
         return {"error": str(e)}
@@ -84,16 +131,17 @@ def get_distinct_machine_count():
 def get_distinct_plant_count():
     try:
         # Query for distinct machine IDs
-        results = client.query("SHOW TAG VALUES ON \"iot_machine_data\" WITH KEY = \"plant_id\"")
-        # print(results)  # This will help you debug and see the structure of the results
+        results = client.query("SELECT DISTINCT(plant_id) FROM machine_data")
+        print(results)  # This will help you debug and see the structure of the results
         
         # Extract the machine IDs
         # The results are stored in a nested structure, we need to loop through to get the values
-        plant_ids = [item['value'] for item in list(results)[0]]
-        # print(plant_ids)
-        # Count distinct machine IDs
-        distinct_count = len(plant_ids)
-        return {"distinct_plant_count": distinct_count}   
+        if results:
+            plant_ids = [item['distinct'] for item in list(results)[0]]
+            # print(plant_ids)
+            # Count distinct machine IDs
+            # distinct_count = len(plant_ids)
+            return {"distinct_plant_count": plant_ids}   
     except Exception as e:
         print(f"An error occurred: {e}")
         return {"error": str(e)}
@@ -102,7 +150,7 @@ def get_distinct_plant_count():
 async def send_data_to_client(websocket: WebSocket, machine_id: int, plant_id: int):
     try:
         await websocket.accept()
-        print("WebSocket connection accepted")
+        print(f"WebSocket connection accepted for machine id {machine_id} and plantid {plant_id}")
         # Your existing code to send data
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -125,30 +173,30 @@ async def send_data_to_client(websocket: WebSocket, machine_id: int, plant_id: i
         try:
             result = client.query(query)
             new_data = []
-            
-            for point in list(result)[0]:
-                new_data.append({
-                    "time": point['time'],
-                    "machine_id": point['machine_id'],
-                    "plant_id": point['plant_id'],
-                    "temperature": point['temperature'],
-                    "humidity": point['humidity'],
-                    "power_supply": point['power_supply'],
-                    "vibration": point['vibration'],
-                    "machine_status": point['machine_status'],
-                })
+            if(result):
+                for point in list(result)[0]:
+                    new_data.append({
+                        "time": point['time'],
+                        "machine_id": point['machine_id'],
+                        "plant_id": point['plant_id'],
+                        "temperature": point['temperature'],
+                        "humidity": point['humidity'],
+                        "power_supply": point['power_supply'],
+                        "vibration": point['vibration'],
+                        "machine_status": point['machine_status'],
+                    })
 
-                # Update last timestamp for the next query
-                last_timestamp = int(datetime.strptime(point['time'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp() * 1_000_000_000)
-            
-            # Send new data to the client if it's different from the previous data
-            if new_data:
-                if prev_data is None or prev_data[-1]['time'] != new_data[-1]['time']:
-                    await websocket.send_json(new_data)
-                    prev_data = new_data.copy()  # Update previous data after sending
+                    # Update last timestamp for the next query
+                    last_timestamp = int(datetime.strptime(point['time'], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp() * 1_000_000_000)
+                
+                # Send new data to the client if it's different from the previous data
+                if new_data:
+                    if prev_data is None or prev_data[-1]['time'] != new_data[-1]['time']:
+                        await websocket.send_json(new_data)
+                        prev_data = new_data.copy()  # Update previous data after sending
 
             # Wait for a short period before the next query
-            await asyncio.sleep(2)  # Adjust the frequency of updates as needed
+            await asyncio.sleep(3)  # Adjust the frequency of updates as needed
 
         except Exception as e:
             print(f"An error occurred while querying InfluxDB: {e}")

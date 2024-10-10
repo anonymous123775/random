@@ -1,0 +1,50 @@
+/* src/Components/Notifications/Notifications.css */
+.notifications-container {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notifications-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notification-item {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background-color 0.3s;
+}
+
+.notification-item:hover {
+  background-color: #f1f1f1;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.notification-plant-machine,
+.notification-parameters,
+.notification-timestamp {
+  margin-right: 20px;
+}
+
+.notification-parameters {
+  color: #ff6347;
+}
+
+.notification-timestamp {
+  color: #888;
+}
