@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './ChartStyles.css';
 import DateSelector from '../DateSelector';
+import { fetchNumFailures } from '../../Services/api';
 
 interface BarChartComponentProps {
   machineId: string;
@@ -24,8 +25,7 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
 
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch(`http://localhost:8000/api/num-failures?month=${selectedMonth}&year=${selectedYear}&machine_id=${machineId}&plant_id=${plantId}`);
-      const newData = await response.json();
+      const newData = await fetchNumFailures(selectedMonth, selectedYear, machineId, plantId);
       console.log('New alert data received:', newData);
 
       setData(newData);

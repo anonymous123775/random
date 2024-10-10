@@ -62,10 +62,6 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(database.g
 async def read_users_me(current_user: schemas.User = Depends(auth.get_current_active_user)):
     return current_user
 
-@app.get("/users/me/items")
-async def read_own_items(current_user: schemas.User = Depends(auth.get_current_active_user)):
-    return [{"item_id": 1, "owner": current_user}]
-
 @app.get("/historical-data")
 async def get_historical_data(machineId: int, plantId: int, timeframe: str = Query("5m")):
     try:
@@ -74,6 +70,7 @@ async def get_historical_data(machineId: int, plantId: int, timeframe: str = Que
     except Exception as e:
         print(f"An error occurred while fetching historical data: {e}")
         raise HTTPException(status_code=500, detail="Error fetching historical data")
+
 
 
 @app.get("/machine-count")
@@ -93,13 +90,13 @@ async def get_machine_and_plant_count(current_user: dict = Depends(auth.get_curr
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/api/notifications")
-def get_notifications(db: Session = Depends(database.get_db)):
+def get_notifications(db: Session = Depends(database.get_db),current_user: models.User = Depends(auth.get_current_active_user)):
     notifications = db.query(models.Notification).order_by(desc(models.Notification.timestamp)).limit(100).all()
     return notifications
 
 
 @app.get("/api/num-failures")
-def get_failures_endpoint(month: int, year: int, machine_id: str, plant_id: str, db: Session = Depends(database.get_db)):
+def get_failures_endpoint(month: int, year: int, machine_id: str, plant_id: str, db: Session = Depends(database.get_db),current_user: models.User = Depends(auth.get_current_active_user)):
     return get_num_failures_month(db, month, year, machine_id, plant_id)
 
 

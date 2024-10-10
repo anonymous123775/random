@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -21,7 +22,7 @@ def authenticate_user(db: Session, username: str, password: str):
         return False
     return user
 
-def create_access_token(data: dict, expires_delta: timedelta or None = None):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -32,22 +33,26 @@ def create_access_token(data: dict, expires_delta: timedelta or None = None):
     return encoded_jwt
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
-    credential_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                         detail="Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
-            raise credential_exception
+            raise credentials_exception
         token_data = schemas.TokenData(username=username)
     except JWTError:
-        raise credential_exception
+        raise credentials_exception
     user = crud.get_user(db, username=token_data.username)
     if user is None:
-        raise credential_exception
+        raise credentials_exception
     return user
 
 async def get_current_active_user(current_user: schemas.User = Depends(get_current_user)):
-    if current_user.disabled:
+    # Ensure the 'disabled' attribute exists in your User schema/model
+    if hasattr(current_user, 'disabled') and current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user

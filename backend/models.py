@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, Float
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Float, Enum
 from database import Base
 from datetime import datetime
 
@@ -19,7 +19,7 @@ class Notification(Base):
     machine_id = Column(Integer)
     plant_id = Column(Integer)
     parameter = Column(String)
-    threshold = Column(String)  # You can change the type according to your needs
+    threshold = Column(Float)  # Changed to Float for numerical consistency
     timestamp = Column(DateTime, default=datetime.utcnow)
     status = Column(String, default="unresolved")
     
@@ -33,7 +33,7 @@ class KPI(Base):
     downtime = Column(Float, nullable=True)
     failure_rate = Column(Float, nullable=True)
     num_alerts_triggered = Column(Integer, nullable=True)
-    last_processed_timestamp = Column(DateTime, nullable=False)
+    last_processed_timestamp = Column(DateTime, default=datetime.utcnow)  # Added default value
     
     def __repr__(self):
         return (f"<KPI(plant_id={self.plant_id}, machine_id={self.machine_id}, "

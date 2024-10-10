@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { fetchNotificationsTyped } from './Components/Services/api';
 
 interface Notification {
   id: number;
@@ -37,8 +38,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      const response = await fetch('http://localhost:8000/api/notifications');
-      const data: Notification[] = await response.json();
+      const  data: Notification[] = await fetchNotificationsTyped()
       setRawNotifications(data);
       const grouped = groupNotificationsByPlantAndMachine(data);
       setGroupedNotifications(grouped);
