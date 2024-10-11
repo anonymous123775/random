@@ -65,7 +65,7 @@ async def send_data_to_client(websocket: WebSocket):
             await asyncio.sleep(2)
 
     except Exception as e:
-        print(f"An error occurred while querying InfluxDB: {e}")
+        print(f"An error occurred while querying InfluxDB in notifications websocket: {e}")
 
 
 # Global dictionary to track last notification states for parameters

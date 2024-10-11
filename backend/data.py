@@ -53,6 +53,12 @@ from influxdb import InfluxDBClient
 import asyncio
 from fastapi import WebSocket, HTTPException
 from datetime import datetime, timedelta
+import logging
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 # InfluxDB settings
 INFLUXDB_HOST = "localhost"
@@ -106,7 +112,7 @@ async def get_historical_data(machineId: int, plantId: int, timeframe: str):
         return data
     except Exception as e:
         # print(query)
-        print(f"An error occurred while querying InfluxDB: {e}")
+        print(f"An error occurred while querying InfluxDB get historical data: {e}")
         raise HTTPException(status_code=500, detail="Error fetching historical data")
 
 def get_distinct_machine_count():
@@ -132,7 +138,7 @@ def get_distinct_plant_count():
     try:
         # Query for distinct machine IDs
         results = client.query("SELECT DISTINCT(plant_id) FROM machine_data")
-        print(results)  # This will help you debug and see the structure of the results
+        # print(results)  # This will help you debug and see the structure of the results
         
         # Extract the machine IDs
         # The results are stored in a nested structure, we need to loop through to get the values
@@ -199,5 +205,6 @@ async def send_data_to_client(websocket: WebSocket, machine_id: int, plant_id: i
             await asyncio.sleep(3)  # Adjust the frequency of updates as needed
 
         except Exception as e:
-            print(f"An error occurred while querying InfluxDB: {e}")
+            logger.error(f"An error occurred while querying InfluxDB in WebSocket real-time data: {e}")
+            print(f"An error occurred while querying InfluxDB in websocket realtime data: {e}")
             break  # Exit the loop on error

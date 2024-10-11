@@ -12,7 +12,7 @@ import database
 import data as d1
 import notification
 import asyncio
-from kpi import calculate_kpis, get_num_failures_month
+from kpi import calculate_kpis, get_num_failures_month, fetch_machine_kpis
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -37,7 +37,7 @@ async def startup_event():
 async def kpi_scheduler():
     while True:
         await calculate_kpis()
-        await asyncio.sleep(9000)  # Sleep for 15 minutes
+        await asyncio.sleep(5)  # Sleep for 15 minutes
 
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
@@ -63,7 +63,7 @@ async def read_users_me(current_user: schemas.User = Depends(auth.get_current_ac
     return current_user
 
 @app.get("/historical-data")
-async def get_historical_data(machineId: int, plantId: int, timeframe: str = Query("5m")):
+async def get_historical_data(machineId: int, plantId: int, timeframe: str = Query("5m"),current_user: models.User = Depends(auth.get_current_active_user)):
     try:
         data = await d1.get_historical_data(machineId, plantId, timeframe)
         return data
@@ -98,6 +98,10 @@ def get_notifications(db: Session = Depends(database.get_db),current_user: model
 @app.get("/api/num-failures")
 def get_failures_endpoint(month: int, year: int, machine_id: str, plant_id: str, db: Session = Depends(database.get_db),current_user: models.User = Depends(auth.get_current_active_user)):
     return get_num_failures_month(db, month, year, machine_id, plant_id)
+
+@app.get("/api/machine-kpis")
+def get_machine_kpis(machine_id: str, plant_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    return fetch_machine_kpis(machine_id,plant_id,db)
 
 
 @app.websocket("/ws/data-stream")
