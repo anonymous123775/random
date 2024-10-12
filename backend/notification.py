@@ -71,6 +71,9 @@ async def send_data_to_client(websocket: WebSocket):
 # Global dictionary to track last notification states for parameters
 last_notification_states = {}
 
+# Global dictionary to track machine online status
+last_machine_status = {}
+
 async def handle_notifications(point, websocket):
     if point['machine_id'] is None or point['plant_id'] is None:
         return  # Skip further processing for this point
@@ -85,6 +88,39 @@ async def handle_notifications(point, websocket):
 
     # Initialize an empty list to hold notifications
     notifications = []
+    
+    machine_status = point['machine_status']
+    
+    if machine_status == 0:
+        # Notify for offline status.
+        if last_machine_status.get((point['plant_id'],point['machine_id'])) != "offline":
+            severity = "error"
+            notifications.append({
+                "machine_id": point['machine_id'],
+                "plant_id": point['plant_id'],
+                "parameter": "status",
+                "threshold": -1,
+                "timestamp": point['time'],
+                "severity": severity,
+            })
+        # Update last machine status to offline
+        last_machine_status[(point['plant_id'],point['machine_id'])] = "offline"
+    else:
+        # Notify when machine comes back online
+        if last_machine_status.get((point['plant_id'],point['machine_id'])) == "offline":
+            notifications.append({
+                "machine_id": point['machine_id'],
+            "plant_id": point['plant_id'],
+            "parameter": "status",
+            "threshold": -1,
+            "timestamp": point['time'],
+            "severity": 'info',
+            })
+
+        # Update last machine status to online
+        last_machine_status[(point['plant_id'],point['machine_id'])] = "online"
+
+
 
     # Iterate through thresholds and check each parameter
     for param, (lower, upper) in thresholds.items():
@@ -109,6 +145,7 @@ async def handle_notifications(point, websocket):
                     "parameter": param,
                     "threshold": value,
                     "timestamp": point['time'],
+                    "severity": "warning",
                 })
                 # Update the last notification state for this key
                 last_notification_states[key] = value  # Store the out-of-bounds value
@@ -138,6 +175,7 @@ async def store_notification(notification):
             threshold=notification["threshold"],
             timestamp=timestamp_dt,
             status="unresolved",
+            severity=notification["severity"],
         )
         
         # Add the new notification to the session and commit the transaction

@@ -64,6 +64,7 @@ export interface Notification {
     status: string;
     threshold: string;
     timestamp: string;
+    severity: string;
 }
 
 // Fetch notifications with type safety

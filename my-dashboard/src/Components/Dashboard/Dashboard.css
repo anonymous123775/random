@@ -152,3 +152,39 @@
 .card.selected {
   background-color: #d9d9d9;
 }
+
+
+.pie-chart-container {
+  grid-column: 1 / 2; /* Position the pie chart */
+  margin-right: 20px; /* Space between pie chart and machine statuses */
+}
+
+.machine-status-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Space between each machine status */
+}
+
+.machine-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-indicator {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.status-indicator.online {
+  background-color: green;
+}
+
+.status-indicator.offline {
+  background-color: red;
+}
+
+.status-indicator.unknown {
+  background-color: yellow;
+}

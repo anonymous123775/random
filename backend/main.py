@@ -13,6 +13,7 @@ import data as d1
 import notification
 import asyncio
 from kpi import calculate_kpis, get_num_failures_month, fetch_machine_kpis, get_num_failures_per_machine
+from online_offline_websocket import machine_status_websocket
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -31,7 +32,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # Startup event to run KPI calculation
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(kpi_scheduler())
+    # asyncio.create_task(kpi_scheduler())
+    pass
     
     
 async def kpi_scheduler():
@@ -116,6 +118,10 @@ async def websocket_endpoint(websocket: WebSocket, machineId: int = Query(...), 
 @app.websocket("/ws/notification-stream")
 async def websocket_notification_endpoint(websocket: WebSocket):
     await notification.send_data_to_client(websocket)
+    
+@app.websocket("/ws/machine-status")
+async def websocket_endpoint(websocket: WebSocket, plantId: int = Query(...)):
+    await machine_status_websocket(websocket, plantId)
     
     
 @app.on_event("shutdown")

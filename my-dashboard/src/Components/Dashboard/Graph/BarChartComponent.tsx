@@ -39,7 +39,7 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
       <h2>Failures per Day</h2>
       <DateSelector
         month={selectedMonth}
-        year={selectedMonth}
+        year={selectedYear}
         onMonthChange={handleMonthChange}
         onYearChange={handleYearChange}
       />

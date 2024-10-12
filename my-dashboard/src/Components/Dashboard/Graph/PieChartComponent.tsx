@@ -1,5 +1,3 @@
-// PieChartComponent.tsx
-
 import React, { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import axios from 'axios';
@@ -17,7 +15,7 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
   useEffect(() => {
     const fetchKpis = async () => {
       try {
-        const kpiData = await fetchMachineKpis(machineId,plantId);
+        const kpiData = await fetchMachineKpis(machineId, plantId);
         if (kpiData && kpiData.length > 0) {
           setUptime(Number((kpiData[0].uptime / 60).toFixed(2))); // Convert minutes to hours
           setDowntime(Number((kpiData[0].downtime / 60).toFixed(2))); // Convert minutes to hours
@@ -41,16 +39,16 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
   const COLORS = ['#4CAF50', '#FF6347'];
 
   return (
-    <div style={{ width: '100%', height: '600px' }}>
+    <div className="pie-chart-container">
       <h3>Uptime vs Downtime</h3>
-      <PieChart width={400} height={400}>
+      <PieChart width={600} height={300}>
         <Pie
           data={data}
-          cx={200}
-          cy={200}
+          cx="50%"
+          cy="50%"
           labelLine={false}
           label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-          outerRadius={150}
+          outerRadius={120}
           fill="#8884d8"
           dataKey="value"
         >

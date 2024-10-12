@@ -11,6 +11,7 @@ interface Notification {
   status: string;
   threshold: string;
   timestamp: string;
+  severity: string; // Include severity
 }
 
 interface GroupedNotification {
@@ -38,7 +39,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      const  data: Notification[] = await fetchNotificationsTyped()
+      const data: Notification[] = await fetchNotificationsTyped();
       setRawNotifications(data);
       const grouped = groupNotificationsByPlantAndMachine(data);
       setGroupedNotifications(grouped);
@@ -59,20 +60,26 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       console.log("new notification received: ", notification);
       
       // Ensure the fields are correctly accessed
-      const { plant_id, machine_id, parameter } = notification;
-    
+      const { plant_id, machine_id, parameter, severity } = notification;
+
+      // Determine toast type based on severity
+      if (severity === "error") {
+        toast.error(`Machine Offline: Plant ID ${plant_id}, Machine ID ${machine_id} - ${parameter} is offline!`);
+      } else if (severity === "warning") {
+        toast.warn(`Warning: Plant ID ${plant_id}, Machine ID ${machine_id} - ${parameter} exceeded threshold!`);
+      } else if (severity === "info") {
+        toast.info(`Machine Online: Plant ID ${plant_id}, Machine ID ${machine_id} - ${parameter} is back online.`);
+      }
+
       setRawNotifications((prev) => {
         const updatedNotifications = [notification, ...prev];
         const grouped = groupNotificationsByPlantAndMachine(updatedNotifications);
         setGroupedNotifications(grouped);
         return updatedNotifications;
       });
-    
+
       console.log(notification);
-      toast.info(`New Notification: Plant ID ${plant_id}, Machine ID ${machine_id} - ${parameter} exceeded threshold`);
     };
-    
-    
 
     socket.onclose = (event) => {
       console.log('WebSocket connection closed:', event);

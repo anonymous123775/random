@@ -228,3 +228,53 @@ def fetch_machine_kpis(machineId: int, plantId : int, db: Session):
     return data
     
     
+    
+async def get_machine_status_counts_and_list(plant_id: str):
+    try:
+        # Current time and time one minute ago
+        current_time = datetime.utcnow()
+        one_minute_ago = current_time - timedelta(minutes=1)
+
+        # Query to get the latest status of all machines in the last minute for the specific plant
+        query = '''
+            SELECT last("machine_status") AS "status", "machine_id", "time"
+            FROM "machine_data"
+            WHERE time >= {} AND "plant_id" = '{}'
+            GROUP BY "machine_id"
+        '''.format(int(one_minute_ago.timestamp() * 1e9), plant_id)  # Convert to nanoseconds
+
+        results = client.query(query)
+
+        online_count = 0
+        offline_count = 0
+        unavailable_count = 0
+        machines_list = []
+
+        # Check results and categorize machine statuses
+        for point in list(results)[0]:
+            machine_id = point['machine_id']
+            status = point['status']
+            last_time = point['time']
+
+            # Check the time of the last status update
+            if last_time >= one_minute_ago.isoformat():
+                if status == 'online':
+                    online_count += 1
+                    machines_list.append({"machine_id": machine_id, "status": "online"})
+                elif status == 'offline':
+                    offline_count += 1
+                    machines_list.append({"machine_id": machine_id, "status": "offline"})
+            else:
+                # If no recent data, mark as unavailable
+                unavailable_count += 1
+                machines_list.append({"machine_id": machine_id, "status": "unavailable"})
+
+        return {
+            "online_count": online_count,
+            "offline_count": offline_count,
+            "unavailable_count": unavailable_count,
+            "machines": machines_list
+        }
+    except Exception as e:
+        logger.error(f"An error occurred while querying InfluxDB for machine status counts: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching machine status counts")

@@ -22,6 +22,7 @@ class Notification(Base):
     threshold = Column(Float)  # Changed to Float for numerical consistency
     timestamp = Column(DateTime, default=datetime.utcnow)
     status = Column(String, default="unresolved")
+    severity = Column(String)  # Add this line to store severity level
     
 class KPI(Base):
     __tablename__ = "kpis"
