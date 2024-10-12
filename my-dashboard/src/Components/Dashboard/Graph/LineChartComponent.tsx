@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import moment from 'moment'; // For formatting the time
 import './ChartStyles.css';
+import { fetchHistoricalData } from '../../Services/api';
 
 interface LineChartComponentProps {
   machineId: string;
@@ -16,15 +17,15 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
 
   useEffect(() => {
     // Fetch historical data based on the selected timeframe
-    const fetchHistoricalData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/historical-data?machineId=${machineId}&plantId=${plantId}&timeframe=${timeframe}`);
-        const historicalData = await response.json();
+        const historicalData = await fetchHistoricalData(machineId,plantId,timeframe);
+        console.log(historicalData)
         const formattedData = historicalData.map((item: any) => ({
           ...item,
           time: moment(item.time).format('HH:mm:ss'),
         }));
-        console.log("historical data : ", formattedData);
+        // console.log("historical data : ", formattedData);
         setData(formattedData);
         updateVisibleData(formattedData);
       } catch (error) {
@@ -32,7 +33,7 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
       }
     };
 
-    fetchHistoricalData();
+    fetchData();
   }, [machineId, plantId, timeframe]);
 
   useEffect(() => {

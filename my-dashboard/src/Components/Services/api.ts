@@ -95,3 +95,35 @@ export const updateUserData = async (userData: any) => {
     const response = await axios.put(`${API_URL}/api/user`, userData, getAuthHeaders());
     return response.data;
 };
+
+
+export const fetchMachineKpis = async (machineId: string , plantId: string) => {
+    try{
+        const response = await axios.get(`${API_URL}/api/machine-kpis`,{
+            headers: getAuthHeaders().headers,
+            params: { machine_id : machineId, plant_id : plantId},
+        });
+        console.log("Machine KPI : ",response.data)
+        return response.data
+    }
+    catch(error){
+        console.log('Failed to fetch Machine Kpis : ', error);
+        throw error;
+    }
+}
+
+
+export const fetchMachineFailuresPlant = async (plantId: string) => {
+    try{
+        const response = await axios.get(`${API_URL}/api/num-machine-failures`,{
+            headers: getAuthHeaders().headers,
+            params: { plant_id : plantId},
+        });
+        console.log("Machine KPI : ",response.data)
+        return response.data
+    }
+    catch(error){
+        console.log('Failed to fetch Machine Kpis : ', error);
+        throw error;
+    }
+}

@@ -14,7 +14,7 @@ def check_notifications():
         cursor = conn.cursor()
 
         # Query to fetch all notifications
-        cursor.execute("SELECT * FROM kpis")
+        cursor.execute("SELECT * FROM notifications")
         notifications = cursor.fetchall()
 
         # Print notifications

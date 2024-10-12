@@ -194,6 +194,26 @@ def get_num_failures_month(db: Session, month: int, year: int, machine_id: str, 
     
     return [{"day": day, "failures": count} for day, count in alert_counts.items()]
 
+def get_num_failures_per_machine(db: Session, plant_id: str):
+    alerts = db.query(Notification).filter(
+        Notification.plant_id == plant_id,
+        Notification.machine_id.isnot(None)  # Filter out alerts with machine_id as None
+    ).all()
+    
+    # Initialize a dictionary to count failures per machine
+    machine_failures = {}
+    
+    for alert in alerts:
+        machine_id = alert.machine_id
+        if machine_id not in machine_failures:
+            machine_failures[machine_id] = 0
+        machine_failures[machine_id] += 1
+    
+    # Sort the results by machine_id
+    sorted_failures = sorted(machine_failures.items())
+    
+    return [{"machine_id": machine_id, "failures": count} for machine_id, count in sorted_failures]
+
 
 
 

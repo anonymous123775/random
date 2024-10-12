@@ -1,112 +1,68 @@
-import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import moment from 'moment'; // For formatting the time
-import './ChartStyles.css';
+// PieChartComponent.tsx
 
-interface LineChartComponentProps {
+import React, { useEffect, useState } from 'react';
+import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import axios from 'axios';
+import { fetchMachineKpis } from '../../Services/api';
+
+interface PieChartComponentProps {
   machineId: string;
   plantId: string;
-  parameters: string[];
 }
 
-const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plantId, parameters }) => {
-  const [data, setData] = useState<any[]>([]);
-  const [timeframe, setTimeframe] = useState('5m');
+const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantId }) => {
+  const [uptime, setUptime] = useState<number>(0);
+  const [downtime, setDowntime] = useState<number>(0);
 
   useEffect(() => {
-    // Fetch historical data based on the selected timeframe
-    const fetchHistoricalData = async () => {
+    const fetchKpis = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/historical-data?machineId=${machineId}&plantId=${plantId}&timeframe=${timeframe}`);
-        const historicalData = await response.json();
-        const formattedData = historicalData.map((item: any) => ({
-          ...item,
-          time: moment(item.time).format('HH:mm:ss'),
-        }));
-        setData(formattedData);
+        const kpiData = await fetchMachineKpis(machineId,plantId);
+        if (kpiData && kpiData.length > 0) {
+          setUptime(Number((kpiData[0].uptime / 60).toFixed(2))); // Convert minutes to hours
+          setDowntime(Number((kpiData[0].downtime / 60).toFixed(2))); // Convert minutes to hours
+        }
       } catch (error) {
-        console.error('Error fetching historical data:', error);
+        console.error('Error fetching KPIs:', error);
       }
     };
 
-    fetchHistoricalData();
-  }, [machineId, plantId, timeframe]);
+    fetchKpis();
+    const interval = setInterval(fetchKpis, 300000); // Refresh every 5 minutes
 
-  useEffect(() => {
-    const socket = new WebSocket(`ws://localhost:8000/ws/data-stream?machineId=${machineId}&plantId=${plantId}`);
+    return () => clearInterval(interval); // Cleanup interval on component unmount
+  }, [machineId, plantId]);
 
-    socket.onmessage = (event) => {
-      const newData = JSON.parse(event.data);
-      console.log('New data received:', newData);
-
-      // Filter data for the specific machine and plant and map time
-      const filteredData = newData
-        .filter((item: any) => 
-            item.machine_id === Number(machineId) && item.plant_id === Number(plantId)
-        )
-        .map((item: any) => ({
-            ...item,
-            time: moment(item.time).format('HH:mm:ss'),
-        }));
-
-      console.log('Filtered data:', filteredData);  // Log filtered data
-
-      // Combine historical data with real-time data
-      setData((prevData) => {
-        const combinedData = [...prevData, ...filteredData];
-        const unitMap: { [key: string]: moment.unitOfTime.DurationConstructor } = {
-          m: 'minutes',
-          h: 'hours',
-        };
-        const unit = unitMap[timeframe.slice(-1)];
-        const duration = parseInt(timeframe.slice(0, -1));
-        const cutoffTime = moment().subtract(duration, unit).format('HH:mm:ss');
-        return combinedData.filter(item => item.time >= cutoffTime);
-      });
-    };
-
-    socket.onclose = (event) => {
-      console.log('WebSocket connection closed:', event);
-    };
-
-    return () => {
-      socket.close(); // Close socket when component unmounts
-    };
-  }, [machineId, plantId, timeframe]);
-
-  const handleTimeframeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setTimeframe(event.target.value);
-  };
+  const total = uptime + downtime;
+  const data = [
+    { name: 'Uptime', value: (uptime / total) * 100 },
+    { name: 'Downtime', value: (downtime / total) * 100 },
+  ];
+  const COLORS = ['#4CAF50', '#FF6347'];
 
   return (
-    <div className="chart-container">
-      <div className="controls">
-        <label htmlFor="timeframe-select">Timeframe:</label>
-        <select id="timeframe-select" value={timeframe} onChange={handleTimeframeChange}>
-          <option value="1m">1 Minute</option>
-          <option value="5m">5 Minutes</option>
-          <option value="15m">15 Minutes</option>
-          <option value="30m">30 Minutes</option>
-          <option value="1h">1 Hour</option>
-          <option value="6h">6 Hours</option>
-          <option value="12h">12 Hours</option>
-          <option value="24h">24 Hours</option>
-        </select>
-      </div>
-      <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-          <XAxis dataKey="time" tick={{ fill: '#8884d8' }} />
-          <YAxis tick={{ fill: '#8884d8' }} />
-          <Tooltip contentStyle={{ backgroundColor: '#f5f5f5', border: 'none' }} />
-          <Legend verticalAlign="top" height={36} />
-          {parameters.includes('temperature') && <Line type="monotone" dataKey="temperature" stroke="#8884d8" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />}
-          {parameters.includes('humidity') && <Line type="monotone" dataKey="humidity" stroke="#82ca9d" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />}
-          {parameters.includes('power') && <Line type="monotone" dataKey="power" stroke="#ff7300" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />}
-        </LineChart>
-      </ResponsiveContainer>
+    <div style={{ width: '100%', height: '600px' }}>
+      <h3>Uptime vs Downtime</h3>
+      <PieChart width={400} height={400}>
+        <Pie
+          data={data}
+          cx={200}
+          cy={200}
+          labelLine={false}
+          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          outerRadius={150}
+          fill="#8884d8"
+          dataKey="value"
+        >
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip />
+        <Legend />
+      </PieChart>
     </div>
   );
 };
 
-export default LineChartComponent;
+export default PieChartComponent;
