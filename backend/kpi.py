@@ -182,8 +182,11 @@ def get_num_failures_month(db: Session, month: int, year: int, machine_id: str, 
         Notification.timestamp >= start_date,
         Notification.timestamp < end_date,
         Notification.machine_id == machine_id,
-        Notification.plant_id == plant_id
+        Notification.plant_id == plant_id,
+        Notification.severity.in_(["warning", "error"])  # Severity check
     ).all()
+
+    
     
     # Initialize alert counts for all days in the month
     alert_counts = {day: 0 for day in range(1, (end_date - start_date).days + 1)}

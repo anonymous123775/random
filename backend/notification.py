@@ -6,6 +6,45 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Notification
 from datetime import datetime
+import aiosmtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+SMTP_SERVER = "127.0.0.1"
+SMTP_PORT = 25
+SMTP_USERNAME = "admin@localdomain.com"  # The email you set up in hMailServer
+SMTP_PASSWORD = "12345"  # Password for that email
+
+async def send_email(to_address: str, subject: str, body: str):
+    message = MIMEMultipart()
+    message["From"] = SMTP_USERNAME
+    message["To"] = to_address
+    message["Subject"] = subject
+
+    # Attach the email body
+    message.attach(MIMEText(body, "plain"))
+
+    try:
+        await aiosmtplib.send(
+            message,
+            hostname=SMTP_SERVER,
+            port=SMTP_PORT,
+            username=SMTP_USERNAME,
+            password=SMTP_PASSWORD,
+        )
+        print(f"Email sent to {to_address}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Retrieve email addresses from the SQLite database
+async def get_email_list():
+    # db: Session = next(get_db())
+    # try:
+    #     result = db.execute("SELECT email FROM users")  # Assuming users table has an email column
+    #     return [row.email for row in result]
+    # finally:
+    #     db.close()
+    return ['piyushbonde006@gmail.com']
 
 # InfluxDB settings
 INFLUXDB_HOST = "localhost"
@@ -122,42 +161,61 @@ async def handle_notifications(point, websocket):
 
 
 
-    # Iterate through thresholds and check each parameter
-    for param, (lower, upper) in thresholds.items():
-        value = point[param]
-        
-        if value is None:
-            continue  # Skip the parameter if the value is None
-        
-        # Create a unique key for the current machine and parameter
-        key = (point['machine_id'], point['plant_id'], param)
+        # Iterate through thresholds and check each parameter
+        for param, (lower, upper) in thresholds.items():
+            value = point[param]
+            
+            if value is None:
+                continue  # Skip the parameter if the value is None
+            
+            # Create a unique key for the current machine and parameter
+            key = (point['machine_id'], point['plant_id'], param)
 
-        # Get the last state from the global dictionary
-        last_state = last_notification_states.get(key, None)
+            # Get the last state from the global dictionary
+            last_state = last_notification_states.get(key, None)
 
-        # Check if the current value is out of bounds
-        if value < lower or value > upper:
-            # If the last state was normal (None or within bounds), send a notification
-            if last_state is None or (last_state >= lower and last_state <= upper):
-                notifications.append({
-                    "machine_id": point['machine_id'],
-                    "plant_id": point['plant_id'],
-                    "parameter": param,
-                    "threshold": value,
-                    "timestamp": point['time'],
-                    "severity": "warning",
-                })
-                # Update the last notification state for this key
-                last_notification_states[key] = value  # Store the out-of-bounds value
-        else:
-            # If the current value is normal, reset the last state
-            last_notification_states[key] = value  # Mark as normal
+            # Check if the current value is out of bounds
+            if value < lower or value > upper:
+                # If the last state was normal (None or within bounds), send a notification
+                if last_state is None or (last_state >= lower and last_state <= upper):
+                    notifications.append({
+                        "machine_id": point['machine_id'],
+                        "plant_id": point['plant_id'],
+                        "parameter": param,
+                        "threshold": value,
+                        "timestamp": point['time'],
+                        "severity": "warning",
+                    })
+                    # Update the last notification state for this key
+                    last_notification_states[key] = value  # Store the out-of-bounds value
+            else:
+                # If the current value is normal, reset the last state
+                last_notification_states[key] = value  # Mark as normal
 
     # Store notifications in the database
+    
     for notification in notifications:
         await store_notification(notification)
         # Send notification to the user
         await websocket.send_json({"notification": notification})
+        
+        email_list = await get_email_list()
+
+        # Send email notifications to all users
+        if notification["severity"] in ["warning", "error"]:
+            for email in email_list:
+                subject = f"Warning for Machine {notification['machine_id']}"
+                body = f"""
+                    Warning Notification:
+
+                    Machine ID: {notification['machine_id']}
+                    Plant ID: {notification['plant_id']}
+                    Parameter: {notification['parameter']}
+                    Current Value: {notification['threshold']}
+
+                    Please check the machine status.
+                """                
+                await send_email(email, subject, body)
 
 
 async def store_notification(notification):

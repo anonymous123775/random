@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from sqlalchemy import desc
+from typing import Optional
 import models
 import schemas
 import crud
@@ -91,11 +92,28 @@ async def get_machine_and_plant_count(current_user: dict = Depends(auth.get_curr
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.get("/api/notifications")
-def get_notifications(db: Session = Depends(database.get_db),current_user: models.User = Depends(auth.get_current_active_user)):
-    notifications = db.query(models.Notification).order_by(desc(models.Notification.timestamp)).limit(100).all()
-    return notifications
+# @app.get("/api/notifications")
+# def get_notifications(db: Session = Depends(database.get_db),current_user: models.User = Depends(auth.get_current_active_user)):
+#     notifications = db.query(models.Notification).order_by(desc(models.Notification.timestamp)).limit(100).all()
+#     return notifications
 
+
+@app.get("/api/notifications")
+def get_notifications(
+    severity: Optional[str] = Query(None, enum=["warning", "error", "info"]),  # Optional severity filter
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_active_user)
+):
+    # Query notifications
+    query = db.query(models.Notification).order_by(desc(models.Notification.timestamp))
+    
+    # Apply severity filter if provided
+    if severity:
+        query = query.filter(models.Notification.severity == severity)
+    
+    # Fetch results with a limit
+    notifications = query.limit(100).all()
+    return notifications
 
 @app.get("/api/num-failures")
 def get_failures_endpoint(month: int, year: int, machine_id: str, plant_id: str, db: Session = Depends(database.get_db),current_user: models.User = Depends(auth.get_current_active_user)):

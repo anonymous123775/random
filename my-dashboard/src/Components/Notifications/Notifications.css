@@ -48,3 +48,36 @@
 .notification-timestamp {
   color: #888;
 }
+
+/* Severity-specific styles */
+.notification-warning {
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+}
+
+.notification-error {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+.notification-info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+}
+
+/* Filter dropdown */
+.filter-container {
+  margin-bottom: 15px;
+}
+
+#severity-filter {
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  font-size: 16px;
+}
+
+#severity-filter:hover {
+  border-color: #888;
+}
