@@ -19,6 +19,7 @@ const ProfilePage: React.FC = () => {
   }, []);
 
   const handleUpdateUser = async (updatedUser: any) => {
+    console.log(updatedUser)
     await updateUserData(updatedUser); // Update user data in API
     setUser(updatedUser); // Update local state
     setIsEditing(false); // Close edit mode

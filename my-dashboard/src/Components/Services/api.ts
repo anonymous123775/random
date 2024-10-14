@@ -93,7 +93,7 @@ export const fetchUserData = async () => {
 
 
 export const updateUserData = async (userData: any) => {
-    const response = await axios.put(`${API_URL}/api/user`, userData, getAuthHeaders());
+    const response = await axios.put(`${API_URL}/api/user/${userData.id}`, userData, getAuthHeaders());
     return response.data;
 };
 

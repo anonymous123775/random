@@ -54,9 +54,9 @@ const Notifications: React.FC = () => {
               <span className="notification-timestamp">
                 {new Date(notification.timestamp).toLocaleString()}
               </span>
-              <span className={`notification-severity ${notification.severity}`}>
+              {/* <span className={`notification-severity ${notification.severity}`}>
                 {notification.severity}
-              </span>
+              </span> */}
             </div>
           </li>
         ))}

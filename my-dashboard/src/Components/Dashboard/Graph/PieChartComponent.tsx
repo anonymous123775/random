@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
-import axios from 'axios';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Box, Typography, Paper } from '@mui/material';
 import { fetchMachineKpis } from '../../Services/api';
 
 interface PieChartComponentProps {
@@ -39,27 +39,33 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
   const COLORS = ['#4CAF50', '#FF6347'];
 
   return (
-    <div className="pie-chart-container">
-      <h3>Uptime vs Downtime</h3>
-      <PieChart width={600} height={300}>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          labelLine={false}
-          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-          outerRadius={120}
-          fill="#8884d8"
-          dataKey="value"
-        >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip />
-        <Legend />
-      </PieChart>
-    </div>
+    <Paper elevation={3} sx={{ padding: 2, marginBottom: 1 }}>
+      <Typography variant="h6" gutterBottom>
+        Uptime vs Downtime
+      </Typography>
+      <Box sx={{ width: '100%', height: 300 }}>
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              outerRadius={120}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </Box>
+    </Paper>
   );
 };
 

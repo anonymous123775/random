@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import './ChartStyles.css';
-import DateSelector from '../DateSelector';
+import { Box, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, Typography, Paper, Grid } from '@mui/material';
 import { fetchNumFailures } from '../../Services/api';
 
 interface BarChartComponentProps {
@@ -11,23 +10,20 @@ interface BarChartComponentProps {
 
 const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantId }) => {
   const [data, setData] = useState<any[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()+1);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const handleMonthChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedMonth(parseInt(event.target.value));
+  const handleMonthChange = (event: SelectChangeEvent<number>) => {
+    setSelectedMonth(event.target.value as number);
   };
 
-  const handleYearChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedYear(parseInt(event.target.value));
+  const handleYearChange = (event: SelectChangeEvent<number>) => {
+    setSelectedYear(event.target.value as number);
   };
-
 
   useEffect(() => {
     const fetchData = async () => {
       const newData = await fetchNumFailures(selectedMonth, selectedYear, machineId, plantId);
-      console.log('New alert data received:', newData);
-
       setData(newData);
     };
 
@@ -35,14 +31,44 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
   }, [selectedMonth, selectedYear, machineId, plantId]);
 
   return (
-    <div className="chart-container">
-      <h2>Failures per Day</h2>
-      <DateSelector
-        month={selectedMonth}
-        year={selectedYear}
-        onMonthChange={handleMonthChange}
-        onYearChange={handleYearChange}
-      />
+    <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+        <Typography variant="h6" gutterBottom marginLeft={6} >
+          Failures per Day
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <FormControl variant="outlined" size="small">
+            <InputLabel id="month-select-label">Month</InputLabel>
+            <Select
+              labelId="month-select-label"
+              value={selectedMonth}
+              onChange={handleMonthChange}
+              label="Month"
+            >
+              {Array.from(Array(12).keys()).map((month) => (
+                <MenuItem key={month + 1} value={month + 1}>
+                  {new Date(0, month).toLocaleString('default', { month: 'long' })}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl variant="outlined" size="small">
+            <InputLabel id="year-select-label">Year</InputLabel>
+            <Select
+              labelId="year-select-label"
+              value={selectedYear}
+              onChange={handleYearChange}
+              label="Year"
+            >
+              {Array.from(Array(10).keys()).map((year) => (
+                <MenuItem key={year + 2020} value={year + 2020}>
+                  {year + 2020}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+      </Box>
       <ResponsiveContainer width="100%" height={400}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -53,7 +79,7 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
           <Bar dataKey="failures" fill="#8884d8" />
         </BarChart>
       </ResponsiveContainer>
-    </div>
+    </Paper>
   );
 };
 
