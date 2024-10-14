@@ -13,7 +13,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log("Token on refresh: ", token); // Debugging line
     if (token) {
+      // Optionally check for token validity/expiration here
       setIsAuthenticated(true);
     }
   }, []);

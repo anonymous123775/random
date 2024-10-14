@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Box, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, Typography, Paper, Grid } from '@mui/material';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
+import { Box, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, Typography, Paper, CircularProgress } from '@mui/material'; // Import CircularProgress
 import { fetchNumFailures } from '../../Services/api';
 
 interface BarChartComponentProps {
@@ -12,6 +21,7 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
   const [data, setData] = useState<any[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState<boolean>(true); // Loading state
 
   const handleMonthChange = (event: SelectChangeEvent<number>) => {
     setSelectedMonth(event.target.value as number);
@@ -23,8 +33,15 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
 
   useEffect(() => {
     const fetchData = async () => {
-      const newData = await fetchNumFailures(selectedMonth, selectedYear, machineId, plantId);
-      setData(newData);
+      setLoading(true); // Start loading
+      try {
+        const newData = await fetchNumFailures(selectedMonth, selectedYear, machineId, plantId);
+        setData(newData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false); // End loading
+      }
     };
 
     fetchData();
@@ -33,7 +50,7 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
   return (
     <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-        <Typography variant="h6" gutterBottom marginLeft={6} >
+        <Typography variant="h6" gutterBottom marginLeft={6}>
           Failures per Day
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -69,16 +86,24 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
           </FormControl>
         </Box>
       </Box>
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="day" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="failures" fill="#8884d8" />
-        </BarChart>
-      </ResponsiveContainer>
+
+      {/* Conditional rendering based on loading state */}
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" height={400}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="day" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="failures" fill="#8884d8" />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </Paper>
   );
 };

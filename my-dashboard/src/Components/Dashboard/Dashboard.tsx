@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Grid, Card, CardContent, Typography, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Box } from '@mui/material';
+import { Container, Grid, Card, CardContent, Typography, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Box, CircularProgress } from '@mui/material';
 import LineChartComponent from './Graph/LineChartComponent';
 import BarChartComponent from './Graph/BarChartComponent';
 import PieChartComponent from './Graph/PieChartComponent';
@@ -20,19 +20,34 @@ const Dashboard: React.FC = () => {
   const [machines, setMachines] = useState<string[]>([]);
   const [plants, setPlants] = useState<string[]>([]);
   const [kpis, setKpis] = useState<KPIData>({});
+  const [loadingMachines, setLoadingMachines] = useState<boolean>(true);
+  const [loadingPlants, setLoadingPlants] = useState<boolean>(true);
+  const [loadingKpis, setLoadingKpis] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchCounts = async () => {
-      const machineData = await getMachineCount();
-      const plantData = await getPlantCount();
-      setMachines(machineData.distinct_machine_count);
-      setPlants(plantData.distinct_plant_count);
+      try {
+        setLoadingMachines(true);
+        setLoadingPlants(true);
+        const machineData = await getMachineCount();
+        const plantData = await getPlantCount();
+        setMachines(machineData.distinct_machine_count);
+        setPlants(plantData.distinct_plant_count);
+      } finally {
+        setLoadingMachines(false);
+        setLoadingPlants(false);
+      }
     };
 
     const fetchKpis = async () => {
-      const kpiData = await fetchMachineKpis(selectedMachine, selectedPlant);
-      if (kpiData) {
-        setKpis(kpiData[0]);
+      try {
+        setLoadingKpis(true);
+        const kpiData = await fetchMachineKpis(selectedMachine, selectedPlant);
+        if (kpiData) {
+          setKpis(kpiData[0]);
+        }
+      } finally {
+        setLoadingKpis(false);
       }
     };
 
@@ -67,68 +82,86 @@ const Dashboard: React.FC = () => {
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <InputLabel id="plant-select-label">Select Plant</InputLabel>
-              <Select
-                labelId="plant-select-label"
-                value={selectedPlant}
-                onChange={handlePlantChange}
-              >
-                {plants.map((plant, index) => (
-                  <MenuItem key={index} value={plant}>
-                    Plant {index + 1}
-                  </MenuItem>
-                ))}
-              </Select>
+              {loadingPlants ? (
+                <Box display="flex" justifyContent="center">
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <Select
+                  labelId="plant-select-label"
+                  value={selectedPlant}
+                  onChange={handlePlantChange}
+                >
+                  {plants.map((plant, index) => (
+                    <MenuItem key={index} value={plant}>
+                      Plant {index + 1}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
             </FormControl>
           </Grid>
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <InputLabel id="machine-select-label">Select Machine</InputLabel>
-              <Select
-                labelId="machine-select-label"
-                value={selectedMachine}
-                onChange={handleMachineChange}
-              >
-                {machines.map((machine, index) => (
-                  <MenuItem key={index} value={machine}>
-                    Machine {index + 1}
-                  </MenuItem>
-                ))}
-              </Select>
+              {loadingMachines ? (
+                <Box display="flex" justifyContent="center">
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <Select
+                  labelId="machine-select-label"
+                  value={selectedMachine}
+                  onChange={handleMachineChange}
+                >
+                  {machines.map((machine, index) => (
+                    <MenuItem key={index} value={machine}>
+                      Machine {index + 1}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
             </FormControl>
           </Grid>
 
           {/* KPI Cards and Pie Chart */}
           <Grid item xs={12} md={4}>
-            <Grid container spacing={4.8}>
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h5">{`Uptime: ${uptimeHMS.hours}h ${uptimeHMS.mins}m ${uptimeHMS.secs}s`}</Typography>
-                  </CardContent>
-                </Card>
+            {loadingKpis ? (
+              <Box display="flex" justifyContent="center" height={300}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Grid container spacing={4.8}>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h5">{`Uptime: ${uptimeHMS.hours}h ${uptimeHMS.mins}m ${uptimeHMS.secs}s`}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h5">{`Downtime: ${downtimeHMS.hours}h ${downtimeHMS.mins}m ${downtimeHMS.secs}s`}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h5">{`Failure Rate: ${failureRatePercentage}%`}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h5">{`Number of Alerts: ${kpis.num_alerts_triggered !== undefined ? kpis.num_alerts_triggered : 'Loading...'}`}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
               </Grid>
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h5">{`Downtime: ${downtimeHMS.hours}h ${downtimeHMS.mins}m ${downtimeHMS.secs}s`}</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h5">{`Failure Rate: ${failureRatePercentage}%`}</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h5">{`Number of Alerts: ${kpis.num_alerts_triggered !== undefined ? kpis.num_alerts_triggered : 'Loading...'}`}</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
+            )}
           </Grid>
           <Grid item xs={12} md={8}>
             <PieChartComponent machineId={selectedMachine} plantId={selectedPlant} />

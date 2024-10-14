@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Label
 } from 'recharts';
-import { Box, Button, Typography, Container, Grid, Paper } from '@mui/material';
+import { Box, Button, Typography, Container, Grid, Paper, CircularProgress } from '@mui/material'; // Import CircularProgress
 import { fetchMachineFailuresPlant, getPlantCount } from '../../Services/api';
 
 interface BarChartComponentProps {
@@ -21,17 +21,25 @@ const BarChartFailureComponent: React.FC<BarChartComponentProps> = ({ plantId })
   const [plants, setPlants] = useState<string[]>([]);
   const [selectedPlant, setSelectedPlant] = useState<string>(plantId);
   const [animationKey, setAnimationKey] = useState<number>(0); // New state for triggering animation
+  const [loading, setLoading] = useState<boolean>(true); // Loading state
 
   useEffect(() => {
     const fetchData = async () => {
-      const plantList = await getPlantCount();
-      setPlants(plantList.distinct_plant_count);
+      setLoading(true); // Start loading
+      try {
+        const plantList = await getPlantCount();
+        setPlants(plantList.distinct_plant_count);
 
-      // Fetch data for the initially selected plant
-      const newData = await fetchMachineFailuresPlant(selectedPlant);
-      setData(newData);
-      // Reset animation key to trigger animation
-      setAnimationKey(prevKey => prevKey + 1);
+        // Fetch data for the initially selected plant
+        const newData = await fetchMachineFailuresPlant(selectedPlant);
+        setData(newData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false); // End loading
+        // Reset animation key to trigger animation
+        setAnimationKey(prevKey => prevKey + 1);
+      }
     };
 
     fetchData();
@@ -43,11 +51,17 @@ const BarChartFailureComponent: React.FC<BarChartComponentProps> = ({ plantId })
       setSelectedPlant(plantId);
       
       // Fetch new data for the selected plant
-      const newData = await fetchMachineFailuresPlant(plantId);
-      setData(newData);
-
-      // Reset animation key to trigger animation
-      setAnimationKey(prevKey => prevKey + 1);
+      setLoading(true); // Start loading
+      try {
+        const newData = await fetchMachineFailuresPlant(plantId);
+        setData(newData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false); // End loading
+        // Reset animation key to trigger animation
+        setAnimationKey(prevKey => prevKey + 1);
+      }
     }
   };
 
@@ -70,31 +84,39 @@ const BarChartFailureComponent: React.FC<BarChartComponentProps> = ({ plantId })
             </Button>
           ))}
         </Box>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart
-            data={data}
-            key={animationKey} // Use the animationKey to trigger re-render
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-            <XAxis dataKey="machine_id" stroke="#333">
-              <Label value="Machines" offset={-5} position="insideBottom" />
-            </XAxis>
-            <YAxis stroke="#333">
-              <Label value="Number of Failures" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
-            </YAxis>
-            <Tooltip contentStyle={{ backgroundColor: '#f5f5f5', border: '1px solid #ccc' }} />
-            <Bar
-              dataKey="failures"
-              fill="#8884d8"
-              barSize={30}
-              isAnimationActive={true}
-              animationBegin={0}
-              animationDuration={500} // Shortened duration for snappier animation
-              animationEasing="ease-in-out"
-            />
-          </BarChart>
-        </ResponsiveContainer>
+
+        {/* Conditional rendering based on loading state */}
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" height={400}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart
+              data={data}
+              key={animationKey} // Use the animationKey to trigger re-render
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+              <XAxis dataKey="machine_id" stroke="#333">
+                <Label value="Machines" offset={-5} position="insideBottom" />
+              </XAxis>
+              <YAxis stroke="#333">
+                <Label value="Number of Failures" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
+              </YAxis>
+              <Tooltip contentStyle={{ backgroundColor: '#f5f5f5', border: '1px solid #ccc' }} />
+              <Bar
+                dataKey="failures"
+                fill="#8884d8"
+                barSize={30}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={500} // Shortened duration for snappier animation
+                animationEasing="ease-in-out"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </Paper>
     </Container>
   );

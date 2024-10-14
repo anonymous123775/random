@@ -25,7 +25,6 @@ async def email_alert(subject, body, to):
     msg['to'] = to
     msg['from'] = user
 
-    # print("email : ", user)
 
     try:
         await aiosmtplib.send(

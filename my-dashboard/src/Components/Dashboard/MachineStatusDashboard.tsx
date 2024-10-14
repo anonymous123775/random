@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Box, Typography, Container, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, styled } from '@mui/material';
+import { Box, Typography, Container, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, styled, CircularProgress } from '@mui/material';
 import { fetchMachineFailuresPlant, getPlantCount } from '../Services/api';
 
 interface MachineStatus {
@@ -47,15 +47,18 @@ const WebSocketPieChartComponent: React.FC<MachineStatusProps> = ({ plantId }) =
   const [machineStatuses, setMachineStatuses] = useState<MachineStatus[]>([]);
   const [plants, setPlants] = useState<string[]>([]);
   const [selectedPlant, setSelectedPlant] = useState<string>(plantId);
+  const [loading, setLoading] = useState<boolean>(true); // Loading state
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true); // Set loading to true when fetching data
       const plantList = await getPlantCount();
       setPlants(plantList.distinct_plant_count);
 
       // Fetch data for the initially selected plant
       const newData = await fetchMachineFailuresPlant(selectedPlant);
       setData(newData);
+      setLoading(false); // Set loading to false after data is fetched
     };
 
     fetchData();
@@ -99,8 +102,10 @@ const WebSocketPieChartComponent: React.FC<MachineStatusProps> = ({ plantId }) =
       setSelectedPlant(plantId);
       
       // Fetch new data for the selected plant
+      setLoading(true); // Set loading to true when fetching new data
       const newData = await fetchMachineFailuresPlant(plantId);
       setData(newData);
+      setLoading(false); // Set loading to false after data is fetched
     }
   };
 
@@ -123,55 +128,59 @@ const WebSocketPieChartComponent: React.FC<MachineStatusProps> = ({ plantId }) =
             </Button>
           ))}
         </Box>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} // Display percentage on the pie chart
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            {/* <Typography variant="h6" gutterBottom>
-              Machine Status
-            </Typography> */}
-            <TableContainer component={Paper} sx={{ maxHeight: 300, overflowY: 'auto', '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-              <Table stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Machine ID</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {machineStatuses.map((machine) => (
-                    <TableRow key={machine.machine_id}>
-                      <TableCell>{machine.machine_id}</TableCell>
-                      <StatusCell className={machine.status}>
-                        {machine.status.charAt(0).toUpperCase() + machine.status.slice(1)}
-                      </StatusCell>
+
+        {loading ? ( // Show loading spinner while data is being fetched
+          <Box display="flex" justifyContent="center" alignItems="center" height={300}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} // Display percentage on the pie chart
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TableContainer component={Paper} sx={{ maxHeight: 300, overflowY: 'auto', '&::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Machine ID</TableCell>
+                      <TableCell>Status</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {machineStatuses.map((machine) => (
+                      <TableRow key={machine.machine_id}>
+                        <TableCell>{machine.machine_id}</TableCell>
+                        <StatusCell className={machine.status}>
+                          {machine.status.charAt(0).toUpperCase() + machine.status.slice(1)}
+                        </StatusCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
           </Grid>
-        </Grid>
+        )}
       </Paper>
     </Container>
   );
