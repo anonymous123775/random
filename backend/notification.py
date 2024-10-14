@@ -6,45 +6,50 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Notification
 from datetime import datetime
+import smtplib
+from email.message import EmailMessage
+import os
+from dotenv import load_dotenv
 import aiosmtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from sqlalchemy import text
 
-SMTP_SERVER = "127.0.0.1"
-SMTP_PORT = 25
-SMTP_USERNAME = "admin@localdomain.com"  # The email you set up in hMailServer
-SMTP_PASSWORD = "12345"  # Password for that email
+load_dotenv()
 
-async def send_email(to_address: str, subject: str, body: str):
-    message = MIMEMultipart()
-    message["From"] = SMTP_USERNAME
-    message["To"] = to_address
-    message["Subject"] = subject
+async def email_alert(subject, body, to):
+    user = os.getenv('email')
+    password = os.getenv('password')
 
-    # Attach the email body
-    message.attach(MIMEText(body, "plain"))
+    msg = EmailMessage()
+    msg.set_content(body)
+    msg['subject'] = subject
+    msg['to'] = to
+    msg['from'] = user
+
+    # print("email : ", user)
 
     try:
         await aiosmtplib.send(
-            message,
-            hostname=SMTP_SERVER,
-            port=SMTP_PORT,
-            username=SMTP_USERNAME,
-            password=SMTP_PASSWORD,
+            msg,
+            hostname="smtp.gmail.com",
+            port=587,
+            start_tls=True,
+            username=user,
+            password=password,
         )
-        print(f"Email sent to {to_address}")
+        print('Email sent successfully')
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        print(f'Failed to send email: {e}')
 
 # Retrieve email addresses from the SQLite database
 async def get_email_list():
-    # db: Session = next(get_db())
-    # try:
-    #     result = db.execute("SELECT email FROM users")  # Assuming users table has an email column
-    #     return [row.email for row in result]
-    # finally:
-    #     db.close()
-    return ['piyushbonde006@gmail.com']
+    db: Session = next(get_db())
+    try:
+        result = db.execute(text("SELECT email FROM users"))  # Assuming users table has an email column
+        # print(result)
+        return [row.email for row in result]
+    finally:
+        db.close()
+    # return ['piyushbonde006@gwsmail.com']
 
 # InfluxDB settings
 INFLUXDB_HOST = "localhost"
@@ -117,7 +122,6 @@ async def handle_notifications(point, websocket):
     if point['machine_id'] is None or point['plant_id'] is None:
         return  # Skip further processing for this point
 
-    # Define thresholds
     thresholds = {
         "temperature": (40, 60),
         "humidity": (40, 50),
@@ -125,13 +129,11 @@ async def handle_notifications(point, websocket):
         "power_supply": (230, 240),
     }
 
-    # Initialize an empty list to hold notifications
     notifications = []
     
     machine_status = point['machine_status']
     
     if machine_status == 0:
-        # Notify for offline status.
         if last_machine_status.get((point['plant_id'],point['machine_id'])) != "offline":
             severity = "error"
             notifications.append({
@@ -142,10 +144,8 @@ async def handle_notifications(point, websocket):
                 "timestamp": point['time'],
                 "severity": severity,
             })
-        # Update last machine status to offline
         last_machine_status[(point['plant_id'],point['machine_id'])] = "offline"
     else:
-        # Notify when machine comes back online
         if last_machine_status.get((point['plant_id'],point['machine_id'])) == "offline":
             notifications.append({
                 "machine_id": point['machine_id'],
@@ -156,27 +156,19 @@ async def handle_notifications(point, websocket):
             "severity": 'info',
             })
 
-        # Update last machine status to online
         last_machine_status[(point['plant_id'],point['machine_id'])] = "online"
 
-
-
-        # Iterate through thresholds and check each parameter
         for param, (lower, upper) in thresholds.items():
             value = point[param]
             
             if value is None:
-                continue  # Skip the parameter if the value is None
+                continue
             
-            # Create a unique key for the current machine and parameter
             key = (point['machine_id'], point['plant_id'], param)
 
-            # Get the last state from the global dictionary
             last_state = last_notification_states.get(key, None)
 
-            # Check if the current value is out of bounds
             if value < lower or value > upper:
-                # If the last state was normal (None or within bounds), send a notification
                 if last_state is None or (last_state >= lower and last_state <= upper):
                     notifications.append({
                         "machine_id": point['machine_id'],
@@ -186,23 +178,17 @@ async def handle_notifications(point, websocket):
                         "timestamp": point['time'],
                         "severity": "warning",
                     })
-                    # Update the last notification state for this key
-                    last_notification_states[key] = value  # Store the out-of-bounds value
+                    last_notification_states[key] = value  
             else:
-                # If the current value is normal, reset the last state
-                last_notification_states[key] = value  # Mark as normal
+                last_notification_states[key] = value  
 
-    # Store notifications in the database
-    
     for notification in notifications:
         await store_notification(notification)
-        # Send notification to the user
         await websocket.send_json({"notification": notification})
         
         email_list = await get_email_list()
 
-        # Send email notifications to all users
-        if notification["severity"] in ["warning", "error"]:
+        if notification["severity"] in ["error","info"]:
             for email in email_list:
                 subject = f"Warning for Machine {notification['machine_id']}"
                 body = f"""
@@ -215,7 +201,7 @@ async def handle_notifications(point, websocket):
 
                     Please check the machine status.
                 """                
-                await send_email(email, subject, body)
+                await email_alert(subject, body, email)
 
 
 async def store_notification(notification):

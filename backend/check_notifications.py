@@ -2,8 +2,8 @@ import sqlite3
 import os
 
 def check_notifications():
-    # db_path = 'C:\\Users\\PBonde1\\OneDrive - Rockwell Automation, Inc\\Desktop\\Project\\backend\\test.db'
-    db_path = r'D:\Demo Project\random\backend\test.db'
+    db_path = 'C:\\Users\\PBonde1\\OneDrive - Rockwell Automation, Inc\\Desktop\\Project\\backend\\test.db'
+    # db_path = r'D:\Demo Project\random\backend\test.db'
     
     # Check if the database file exists
     if not os.path.exists(db_path):
@@ -15,14 +15,14 @@ def check_notifications():
         cursor = conn.cursor()
 
         # Query to fetch all notifications
-        cursor.execute("SELECT * FROM notifications")
+        cursor.execute("SELECT * FROM kpis")
         notifications = cursor.fetchall()
 
         # Print notifications
         for notification in notifications:
             print(notification)
             
-        # cursor.execute("DELETE FROM notifications")  # This will delete all notifications
+        # cursor.execute("DELETE FROM users WHERE id <= 5")  # This will delete all notifications
         # conn.commit()  # Commit the changes to the database
         # print("All notifications have been cleared.")
         

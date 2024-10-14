@@ -54,3 +54,10 @@ class KPI(KPIBase):
 
     class Config:
         orm_mode = True
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str]
+    full_name: Optional[str]
+    email: Optional[str]
+    disabled: Optional[bool]
