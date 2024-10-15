@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 class Token(BaseModel):
@@ -61,3 +61,16 @@ class UserUpdate(BaseModel):
     full_name: Optional[str]
     email: Optional[str]
     disabled: Optional[bool]
+    
+# Log schemas
+class LogBase(BaseModel):
+    Username: str
+    Logid: int
+    Timestamp: datetime
+    Values: Dict[str, Any]
+
+class LogCreate(LogBase):
+    pass
+
+class Log(LogBase):
+    id: int

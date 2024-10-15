@@ -31,3 +31,4 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate):
     db.commit()
     db.refresh(user)
     return user
+

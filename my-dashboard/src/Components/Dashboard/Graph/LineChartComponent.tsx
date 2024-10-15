@@ -59,6 +59,7 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
         return combinedData;
       });
     };
+    
 
     socket.onclose = (event) => {
       console.log('WebSocket connection closed:', event);
@@ -146,11 +147,13 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
 
 export default LineChartComponent;
 
-// import React, { useEffect, useState } from 'react';
+// import React, { useEffect, useState, useRef } from 'react';
 // import Plot from 'react-plotly.js'; // Import Plotly
+// // import Plotly from 'plotly.js-dist-min'; // Import Plotly for animations
 // import moment from 'moment'; // For formatting the time
 // import { CircularProgress, Box, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, Typography, Paper } from '@mui/material';
 // import { fetchHistoricalData } from '../../Services/api';
+// import { ScatterData } from 'plotly.js'; // Import ScatterData type
 
 // interface LineChartComponentProps {
 //   machineId: string;
@@ -162,6 +165,7 @@ export default LineChartComponent;
 //   const [data, setData] = useState<any[]>([]);
 //   const [timeframe, setTimeframe] = useState('5m');
 //   const [loading, setLoading] = useState<boolean>(true);
+//   const plotRef = useRef<Plotly.PlotlyHTMLElement | null>(null);
 
 //   // Fetch historical data based on the selected timeframe
 //   useEffect(() => {
@@ -199,7 +203,23 @@ export default LineChartComponent;
 //         }));
 
 //         // Combine historical data with real-time data
-//         setData((prevData) => [...prevData, ...formattedNewData]);
+//         setData((prevData) => {
+//           const combinedData = [...prevData, ...formattedNewData];
+//           updateVisibleData(combinedData);
+//           return combinedData;
+//         });
+
+//         // Trigger animation
+//         // if (plotRef.current) {
+//         //   Plotly.animate(plotRef.current, {
+//         //     data: plotlyData,
+//         //     traces: plotlyData.map((_, index) => index), // Update this based on your trace indices
+//         //     layout: {},
+//         //   }, {
+//         //     transition: { duration: 500, easing: 'cubic-in-out' },
+//         //     frame: { duration: 500, redraw: false },
+//         //   });
+//         // }
 //       }
 //     };
 
@@ -212,6 +232,18 @@ export default LineChartComponent;
 //     };
 //   }, [machineId, plantId]);
 
+//   const updateVisibleData = (combinedData: any[]) => {
+//     const unitMap: { [key: string]: moment.unitOfTime.DurationConstructor } = {
+//       m: 'minutes',
+//       h: 'hours',
+//     };
+//     const unit = unitMap[timeframe.slice(-1)];
+//     const duration = parseInt(timeframe.slice(0, -1));
+//     const cutoffTime = moment().subtract(duration, unit).valueOf(); // Use timestamp for filtering
+//     const visible = combinedData.filter(item => item.time >= cutoffTime);
+//     setData(visible);
+//   };
+
 //   if (loading) {
 //     return (
 //       <Box display="flex" justifyContent="center" alignItems="center" height={300}>
@@ -221,7 +253,7 @@ export default LineChartComponent;
 //   }
 
 //   // Prepare data for Plotly
-//   const plotlyData = parameters.map((param) => ({
+//   const plotlyData: Partial<ScatterData>[] = parameters.map((param) => ({
 //     x: data.map((item) => moment(item.time).format('HH:mm:ss')), // Format time for x-axis
 //     y: data.map((item) => item[param]), // Extract parameter values
 //     type: 'scatter', // Type of plot
@@ -231,18 +263,47 @@ export default LineChartComponent;
 //   }));
 
 //   return (
-//     <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
-//       <Typography variant="h6" gutterBottom>
-//         Machine Parameters Over Time
-//       </Typography>
-//       <Plot
-//         data={plotlyData}
-//         layout={{
-//           title: 'Machine Parameters Over Time',
-//           xaxis: { title: 'Time', tickangle: -45 },
-//           yaxis: { title: 'Values' },
-//         }}
-//       />
+//     <Paper elevation={3} sx={{ padding: 2, marginBottom: 3, height: '100%' }}>
+//       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+//         <Typography variant="h6" gutterBottom>
+//           {parameters.map(param => `${param.charAt(0).toUpperCase() + param.slice(1)} over Time`).join(', ')}
+//         </Typography>
+//         <FormControl variant="outlined" size="small">
+//           <InputLabel id="timeframe-select-label">Timeframe</InputLabel>
+//           <Select
+//             labelId="timeframe-select-label"
+//             value={timeframe}
+//             onChange={(event: SelectChangeEvent<string>) => setTimeframe(event.target.value)}
+//             label="Timeframe"
+//           >
+//             <MenuItem value="1m">1 Minute</MenuItem>
+//             <MenuItem value="5m">5 Minutes</MenuItem>
+//             <MenuItem value="15m">15 Minutes</MenuItem>
+//             <MenuItem value="30m">30 Minutes</MenuItem>
+//             <MenuItem value="1h">1 Hour</MenuItem>
+//             <MenuItem value="6h">6 Hours</MenuItem>
+//             <MenuItem value="12h">12 Hours</MenuItem>
+//             <MenuItem value="24h">24 Hours</MenuItem>
+//           </Select>
+//         </FormControl>
+//       </Box>
+//       <Box sx={{ height: 'calc(100% - 64px)' }}>
+//         <Plot
+//           // ref={plotRef}
+//           data={plotlyData}
+//           layout={{
+//             title: 'Machine Parameters Over Time',
+//             xaxis: { title: 'Time', tickangle: -45, autorange: true },
+//             yaxis: { title: 'Values', autorange: true },
+//             autosize: true,
+//             margin: { l: 50, r: 50, b: 50, t: 50 },
+//             showlegend: true,
+//             legend: { orientation: 'h' },
+//           }}
+//           style={{ width: '100%', height: '100%' }}
+//           config={{ displayModeBar: true}}
+//         />
+//       </Box>
 //     </Paper>
 //   );
 // };

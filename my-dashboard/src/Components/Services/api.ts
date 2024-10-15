@@ -70,6 +70,7 @@ export interface Notification {
 // Fetch notifications with type safety
 export const fetchNotificationsTyped = async (): Promise<Notification[]> => {
     const response = await axios.get(`${API_URL}/api/notifications`, getAuthHeaders());
+    console.log("fetched notifications : ",response.data)
     return response.data;
 };
 

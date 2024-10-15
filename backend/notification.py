@@ -12,6 +12,7 @@ import os
 from dotenv import load_dotenv
 import aiosmtplib
 from sqlalchemy import text
+from mongodb_logger import log_to_mongodb
 
 load_dotenv()
 
@@ -201,6 +202,9 @@ async def handle_notifications(point, websocket):
                     Please check the machine status.
                 """                
                 await email_alert(subject, body, email)
+                
+        await log_to_mongodb("alert", notification)
+
 
 
 async def store_notification(notification):

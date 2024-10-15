@@ -3,50 +3,40 @@ import paho.mqtt.client as mqtt
 import time
 import json
 from datetime import datetime
+import config
+import threading
+
+stop_flag = threading.Event()
 
 # MQTT settings
-broker = "localhost"
-port = 1883
+broker = config.BROKER
+port = config.PORT
+
+
+# MQTT client setup
+client = mqtt.Client()
+client.connect(broker, port, 60)
+
 
 # Configuration
-NUM_PLANTS = 10
-NUM_MACHINES_PER_PLANT = 10
-FAULT_PROBABILITY = 0.06  # 60% chance for a machine to become faulty
-OFFLINE_PROBABILITY = 0.05  # 5% chance for a machine to go offline
-NORMAL_INTERVAL = 5  # Time interval for stable devices (in seconds)
-BACK_TO_NORMAL_FROM_OFFLINE = 0.05
-BACK_TO_NORMAL_FROM_FAULTY = 0.02
+NUM_PLANTS = config.NUM_PLANTS
+NUM_MACHINES_PER_PLANT = config.NUM_MACHINES_PER_PLANT
+FAULT_PROBABILITY = config.FAULT_PROBABILITY  # 6% chance for a machine to become faulty
+OFFLINE_PROBABILITY = config.OFFLINE_PROBABILITY  # 5% chance for a machine to go offline
+NORMAL_INTERVAL = config.NORMAL_INTERVAL  # Time interval for stable devices (in seconds)
+BACK_TO_NORMAL_FROM_OFFLINE = config.BACK_TO_NORMAL_FROM_OFFLINE
+BACK_TO_NORMAL_FROM_FAULTY = config.BACK_TO_NORMAL_FROM_FAULTY
 
 # centralized normal range for all parameters
-NORMAL_RANGE = {
-    "temperature": (40, 60),
-    "humidity": (40, 50),
-    "power_supply": (230, 240),
-    "vibration": (0.2, 0.4)
-}
+NORMAL_RANGE = config.NORMAL_RANGE
 
 # faulty ranges for all parameters (outside the normal bounds)
-FAULTY_RANGE = {
-    "temperature": (20, 100),
-    "humidity": (20, 80),
-    "power_supply": (180, 280),
-    "vibration": (0.1, 2.0)
-}
+FAULTY_RANGE = config.FAULTY_RANGE
 
-NORMAL_DRIFT_RANGE = {
-    "temperature": (-1, 1),
-    "humidity": (-1, 1),
-    "power_supply": (-1, 1),
-    "vibration": (-0.07, 0.07)
-}
+NORMAL_DRIFT_RANGE = config.NORMAL_DRIFT_RANGE
 
 # drift ranges for going out of bound and coming back to normal
-DRIFT_RANGE = {
-    "temperature": (1, 5),
-    "humidity": (1, 5),
-    "power_supply": (1, 5),
-    "vibration": (0.07, 0.12)
-}
+DRIFT_RANGE = config.DRIFT_RANGE
 
 # current values and faulty direction (up/down) for each machine
 current_values = {
@@ -102,19 +92,19 @@ def update_machine_state(plant_id, machine_id):
     
     # Machines have a low chance to go faulty or offline if they're currently normal
     if current_state == "normal":
-        if random.random() < FAULT_PROBABILITY:
+        if random.random() <= FAULT_PROBABILITY:
             machine_states[(plant_id, machine_id)] = "faulty"
             # Randomly choose the fault direction when a machine becomes faulty
             current_values_entry["fault_direction"] = random.choice(['up', 'down'])
             # choose some parameters 
             num_faulty_params = random.randint(1, len(NORMAL_RANGE))
             current_values_entry["faulty_parameters"] = random.sample(list(NORMAL_RANGE.keys()), num_faulty_params)
-        elif random.random() < OFFLINE_PROBABILITY:
+        elif random.random() <= OFFLINE_PROBABILITY:
             machine_states[(plant_id, machine_id)] = "offline"
     
     # faulty can eventually go back to normal
     elif current_state == "faulty":
-        if random.random() < BACK_TO_NORMAL_FROM_FAULTY:  # Chance to recover
+        if random.random() <= BACK_TO_NORMAL_FROM_FAULTY:  # Chance to recover
             machine_states[(plant_id, machine_id)] = "normal"
             current_values_entry["transitioning"] = True  # transition flag to True
     
@@ -130,11 +120,10 @@ def update_machine_state(plant_id, machine_id):
     
     return machine_states[(plant_id, machine_id)]
 
-def generate_data():
-    all_data = []
+def generate_data(plant_id, machine_id):
     
-    for plant_id in range(1, NUM_PLANTS+1):
-        for machine_id in range(1, NUM_MACHINES_PER_PLANT+1):
+    try : 
+        while not stop_flag.is_set():
             state = update_machine_state(plant_id, machine_id)
             current_temp = current_values[(plant_id, machine_id)]["temperature"]
             current_humidity = current_values[(plant_id, machine_id)]["humidity"]
@@ -219,24 +208,35 @@ def generate_data():
                 "vibration": vibration,
                 "machine_status": "offline" if state == 'offline' else 'online'
             }
-            all_data.append(data)
-    
-    return all_data
-
-# MQTT client setup
-client = mqtt.Client()
-client.connect(broker, port, 60)
-
-try:
-    while True:
-        data_list = generate_data()
-        for data in data_list:
+        
             plant_id = data["plant_id"]
             machine_id = data["machine_id"]
             topic = f"iot/plant{plant_id}/machine{machine_id}"  # Dynamic topic based on plant and machine ID
             client.publish(topic, json.dumps(data))  # Publish data in JSON format
-            print(f"Published to {topic}: {data}")
-        time.sleep(NORMAL_INTERVAL)  # Interval for generating data
+            # print(f"Published to {topic}: {data}")
+            time.sleep(NORMAL_INTERVAL)  # Interval for generating data
+        
+    except Exception:
+        print("Exception in generating data : ", Exception)
+
+threads = []
+
+try : 
+    for plant_id in range(1, config.NUM_PLANTS + 1):
+        for machine_id in range(1, config.NUM_MACHINES_PER_PLANT + 1):
+            thread = threading.Thread(target=generate_data, args=(plant_id, machine_id))
+            threads.append(thread)
+            thread.start()
+except Exception:
+    print("Exception while generating threads : ", Exception)
+
+
+try:
+    while True:
+        time.sleep(1)
 except KeyboardInterrupt:
     print("Data generation stopped.")
+    stop_flag.set()
+    for thread in threads:
+        thread.join()
     client.disconnect()

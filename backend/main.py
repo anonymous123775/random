@@ -34,8 +34,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(kpi_scheduler())
-    pass
-    
+    # pass
     
 async def kpi_scheduler():
     while True:

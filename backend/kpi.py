@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import KPI, Notification
 import logging
+from mongodb_logger import log_to_mongodb
 
 
 logging.basicConfig(level=logging.INFO)
@@ -58,6 +59,17 @@ async def calculate_kpis():
 
                 # Save/update KPI entry in the SQLite database
                 save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts, current_time)
+                
+                # Log KPI data to MongoDB
+                kpi_log_data = {
+                    "plant_id": plant_id,
+                    "machine_id": machine_id,
+                    "uptime": uptime,
+                    "downtime": downtime,
+                    "num_alerts_triggered": num_alerts,
+                    "timestamp": current_time.isoformat()
+                }
+                await log_to_mongodb("info", kpi_log_data)
 
         # print("KPIs calculated and stored successfully.")
 
