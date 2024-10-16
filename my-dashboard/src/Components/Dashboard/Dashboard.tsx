@@ -10,6 +10,7 @@ import { Tabs, Tab, Checkbox, ListItemText, TextField, FormControlLabel, Switch 
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import LineChartNotRealtimeComponent from './Graph/LineChartNotRealTime';
 
 interface KPIData {
   uptime?: number;
@@ -265,22 +266,44 @@ const Dashboard: React.FC = () => {
             <Grid item xs={12} md={8}>
               <PieChartComponent machineId={selectedMachine} plantId={selectedPlant} startTime={startTime} endTime={endTime} realTime={realTime}/>
             </Grid>
-
-            {/* Temperature and Humidity Graphs */}
-            <Grid item xs={12} md={6}>
-              <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['temperature']} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['humidity']} />
-            </Grid>
-  
-            {/* Vibration and Power Graphs */}
-            <Grid item xs={12} md={6}>
-              <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['vibration']} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} />
-            </Grid>
+            {realTime ?(
+              <>
+                {/* Temperature and Humidity Graphs */}
+                <Grid item xs={12} md={6}>
+                  <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['temperature']} />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['humidity']} />
+                </Grid>
+      
+                {/* Vibration and Power Graphs */}
+                <Grid item xs={12} md={6}>
+                  <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['vibration']} />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} />
+                </Grid>
+              </>
+            ):(
+              <>
+                {/* Temperature and Humidity Graphs */}
+                <Grid item xs={12} md={6}>
+                  <LineChartNotRealtimeComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['temperature']} startTime={startTime} endTime={endTime} />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <LineChartNotRealtimeComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['humidity']} startTime={startTime} endTime={endTime} />
+                </Grid>
+      
+                {/* Vibration and Power Graphs */}
+                <Grid item xs={12} md={6}>
+                  <LineChartNotRealtimeComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['vibration']} startTime={startTime} endTime={endTime} />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <LineChartNotRealtimeComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} startTime={startTime} endTime={endTime} />
+                </Grid>
+              </>
+            )
+            }
 
             <Grid item xs={12}>
               <BarChartComponent machineIds={selectedMachine} plantId={selectedPlant}  />

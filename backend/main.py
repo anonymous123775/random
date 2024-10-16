@@ -82,6 +82,16 @@ async def get_historical_data(machineId: int, plantId: int, timeframe: str = Que
         print(f"An error occurred while fetching historical data: {e}")
         raise HTTPException(status_code=500, detail="Error fetching historical data")
 
+@app.get("/historical-data-start-end")
+async def get_historical_machine_data(machineId: int, plantId: int,startTime:datetime, endTime: datetime,  timeframe: str = Query("5m"),current_user: models.User = Depends(auth.get_current_active_user)):
+    try:
+        print(machineId,plantId,startTime,endTime)
+        data = await d1.get_historical_machine_data(machineId, plantId, startTime=startTime, endTime=endTime)
+        return data
+    except Exception as e:
+        print(f"An error occurred while fetching historical data: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching historical data")
+
 
 
 @app.get("/machine-count")

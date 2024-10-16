@@ -1,54 +1,3 @@
-# from influxdb_client import InfluxDBClient
-# import os
-
-# # InfluxDB Configuration
-# INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
-# INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "z1SMuOYbG-nnEnjFPxjo_FrlpZkQofwBGJkE6z99oY19qL88IhHxgJqRkBWellbEOh-jvss2eyawuQva9DFkgg==")
-# INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "company")
-# INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "iot_machine_data")
-
-# client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
-# query_api = client.query_api()
-
-# async def get_machine_and_plant_count():
-#     # Query to fetch unique counts of machines and plants
-#     plant_query = f'''
-#         from(bucket: "{INFLUXDB_BUCKET}")
-#     |> range(start: -1h)
-#     |> filter(fn: (r) => r._measurement == "machine_data")
-#     |> group(columns: ["plant_id"])
-#     |> count()
-#     '''
-
-#     machine_query = f'''
-#         from(bucket: "{INFLUXDB_BUCKET}")
-#     |> range(start: -20s)
-#     |> filter(fn: (r) => r._measurement == "machine_data")
-#     '''
-    
-#     # Execute both queries
-#     machine_result = query_api.query(machine_query)
-#     plant_result = query_api.query(plant_query)
-
-#     print(machine_result)
-#     # Initialize counts
-#     machines_count = 0
-#     plants_count = 0
-
-#     # Count the unique machine IDs
-#     for table in machine_result:
-#         print(table)
-#         if "machine_id" in table.columns:
-#             machines_count = len(table.records)  # Count unique machine IDs
-
-#     # Count the unique plant IDs
-#     for table in plant_result:
-#         print(table)
-#         if "plant_id" in table.columns:
-#             plants_count = len(table.records)  # Count unique plant IDs
-
-#     return machines_count, plants_count
-
 from influxdb import InfluxDBClient
 import asyncio
 from fastapi import WebSocket, HTTPException
@@ -67,6 +16,43 @@ INFLUXDB_DATABASE = "iot_machine_data"
 
 # Initialize InfluxDB client
 client = InfluxDBClient(host=INFLUXDB_HOST, port=INFLUXDB_PORT, database=INFLUXDB_DATABASE)
+
+async def get_historical_machine_data(machineId: int, plantId: int, startTime: datetime, endTime: datetime):
+    try:
+        # Map timeframe to duration
+        # print(machineId,plantId,timeframe)
+        
+        start_time_ns = int(startTime.timestamp() * 1e9)
+        end_time_ns = int(endTime.timestamp() * 1e9)
+
+        # Query to fetch historical data
+        query = f'''
+            SELECT * FROM "machine_data"
+            WHERE "machine_id" = {machineId} AND "plant_id" = {plantId}
+            AND time > {start_time_ns} AND time <= {end_time_ns}
+            ORDER BY time ASC
+        '''
+        
+        result = client.query(query)
+        
+        data = []
+        if result:
+            for point in list(result)[0]:
+                data.append({
+                    "time": point['time'],
+                    "machine_id": point['machine_id'],
+                    "plant_id": point['plant_id'],
+                    "temperature": point['temperature'],
+                    "humidity": point['humidity'],
+                    "power_supply": point['power_supply'],
+                    "vibration": point['vibration'],
+                    "machine_status": point['machine_status'],
+                })
+        return data
+    except Exception as e:
+        # print(query)
+        print(f"An error occurred while querying InfluxDB get historical data: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching historical data")
 
 
 async def get_historical_data(machineId: int, plantId: int, timeframe: str):
