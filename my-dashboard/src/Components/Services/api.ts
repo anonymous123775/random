@@ -114,6 +114,21 @@ export const fetchMachineKpis = async (machineId: string , plantId: string) => {
     }
 }
 
+export const fetchKpiNotRealTime = async (machineId: string , plantId: string, startTime: Date | null, endTime: Date | null) => {
+    try{
+        const response = await axios.get(`${API_URL}/api/machine-kpis-not-realtime`,{
+            headers: getAuthHeaders().headers,
+            params: { machine_id : machineId, plant_id : plantId, startTime: startTime, endTime: endTime},
+        });
+        console.log("Machine KPI Not real time : ",response.data)
+        return response.data
+    }
+    catch(error){
+        console.log('Failed to fetch Machine Kpis : ', error);
+        throw error;
+    }
+}
+
 
 export const fetchMachineFailuresPlant = async (plantId: string) => {
     try{

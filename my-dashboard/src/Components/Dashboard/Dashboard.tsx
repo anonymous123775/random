@@ -3,10 +3,13 @@ import { Container, Grid, Card, CardContent, Typography, Select, MenuItem, FormC
 import LineChartComponent from './Graph/LineChartComponent';
 import BarChartComponent from './Graph/BarChartComponent';
 import PieChartComponent from './Graph/PieChartComponent';
-import { getMachineCount, getPlantCount, fetchMachineKpis } from '../Services/api';
+import { getMachineCount, getPlantCount, fetchMachineKpis, fetchKpiNotRealTime } from '../Services/api';
 import WebSocketPieChartComponent from './MachineStatusDashboard';
 import BarChartFailureComponent from './Graph/BarChartFailureComponent';
-import { Tabs, Tab } from '@mui/material';
+import { Tabs, Tab, Checkbox, ListItemText, TextField, FormControlLabel, Switch } from '@mui/material';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 interface KPIData {
   uptime?: number;
@@ -16,7 +19,7 @@ interface KPIData {
 }
 
 const Dashboard: React.FC = () => {
-  const [selectedMachine, setSelectedMachine] = useState<string>('1');
+  const [selectedMachine, setSelectedMachine] = useState<string[]>([]);
   const [selectedPlant, setSelectedPlant] = useState<string>('1');
   const [machines, setMachines] = useState<string[]>([]);
   const [plants, setPlants] = useState<string[]>([]);
@@ -25,11 +28,31 @@ const Dashboard: React.FC = () => {
   const [loadingPlants, setLoadingPlants] = useState<boolean>(true);
   const [loadingKpis, setLoadingKpis] = useState<boolean>(true);
   const [selectedTab, setSelectedTab] = useState<number>(0);
+  const [startTime, setStartTime] = useState<Date | null>(new Date());
+  const [endTime, setEndTime] = useState<Date | null>(new Date());
+  const [realTime, setRealTime] = useState<boolean>(true);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };
 
+  const handleStartTimeChange = (newValue: Date | null) => {
+    setStartTime(newValue);
+  };
+
+  const handleEndTimeChange = (newValue: Date | null) => {
+    setEndTime(newValue);
+  };
+
+  const handleRealTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRealTime(event.target.checked);
+    if (event.target.checked) {
+    }
+    else{
+      setStartTime(new Date(0)); // Set to epoch time or any very low value
+      setEndTime(new Date()); // Current time
+    }
+  };
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -49,21 +72,43 @@ const Dashboard: React.FC = () => {
     const fetchKpis = async () => {
       try {
         setLoadingKpis(true);
-        const kpiData = await fetchMachineKpis(selectedMachine, selectedPlant);
-        if (kpiData) {
-          setKpis(kpiData[0]);
+        const kpiData = await Promise.all(
+          selectedMachine.map(machine => 
+            realTime 
+              ? fetchMachineKpis(machine, selectedPlant) 
+              : fetchKpiNotRealTime(machine, selectedPlant, startTime, endTime)
+          )
+        );
+        // console.log(kpiData)
+        const aggregatedKpis = kpiData.flat().reduce((acc, kpi) => {
+          if (kpi) {
+            acc.uptime += kpi.uptime || 0;
+            acc.downtime += kpi.downtime || 0;
+            acc.failure_rate += kpi.failure_rate || 0;
+            acc.num_alerts_triggered += kpi.num_alerts_triggered || 0;
+          }
+          return acc;
+        }, { uptime: 0, downtime: 0, failure_rate: 0, num_alerts_triggered: 0 });
+        // console.log("aggregated data : ",aggregatedKpis)
+        // Calculate the average failure rate
+        if (selectedMachine.length > 0) {
+          aggregatedKpis.failure_rate = aggregatedKpis.failure_rate / selectedMachine.length;
         }
+
+        setKpis(aggregatedKpis);
       } finally {
         setLoadingKpis(false);
       }
     };
 
-    fetchKpis();
+    if (selectedMachine.length > 0 && selectedPlant) {
+      fetchKpis();
+    }
     fetchCounts();
-  }, [selectedMachine, selectedPlant]);
+  }, [selectedMachine, selectedPlant, realTime]);
 
-  const handleMachineChange = (event: SelectChangeEvent<string>) => {
-    setSelectedMachine(event.target.value as string);
+  const handleMachineChange = (event: SelectChangeEvent<string[]>) => {
+    setSelectedMachine(event.target.value as string[]);
   };
 
   const handlePlantChange = (event: SelectChangeEvent<string>) => {
@@ -81,19 +126,31 @@ const Dashboard: React.FC = () => {
   const downtimeHMS = kpis.downtime !== undefined ? convertMinutesToHMS(kpis.downtime) : { hours: 0, mins: 0, secs: 0 };
   const failureRatePercentage = kpis.failure_rate !== undefined ? (kpis.failure_rate * 100).toFixed(2) : 'Loading...';
 
+  useEffect(() => {
+    console.log(startTime,endTime)
+  },[startTime,endTime])
+
   return (
     <Container maxWidth="xl">
       <Box mt={3}>
-        <Box mb={3}>
-          <Tabs value={selectedTab} onChange={handleTabChange} centered>
+        <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
+        <Box flexGrow={1} display="flex" justifyContent="center">
+          <Tabs value={selectedTab} onChange={handleTabChange}>
             <Tab label="Machine View" />
             <Tab label="Plant View" />
           </Tabs>
-          </Box>
+        </Box>
+        {selectedTab === 0 && (
+          <FormControlLabel
+            control={<Switch checked={realTime} onChange={handleRealTimeChange} />}
+            label="Real-time Data"
+          />
+        )}
+        </Box>
         {selectedTab === 0 && (
           <Grid container spacing={3}>
             {/* Machine View Components */}
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={realTime?6:3}>
               <FormControl fullWidth>
                 <InputLabel id="plant-select-label">Select Plant</InputLabel>
                 {loadingPlants ? (
@@ -108,14 +165,14 @@ const Dashboard: React.FC = () => {
                   >
                     {plants.map((plant, index) => (
                       <MenuItem key={index} value={plant}>
-                        Plant {index + 1}
+                        {plant}
                       </MenuItem>
                     ))}
                   </Select>
                 )}
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={realTime?6:3}>
               <FormControl fullWidth>
                 <InputLabel id="machine-select-label">Select Machine</InputLabel>
                 {loadingMachines ? (
@@ -125,20 +182,47 @@ const Dashboard: React.FC = () => {
                 ) : (
                   <Select
                     labelId="machine-select-label"
+                    multiple
                     value={selectedMachine}
                     onChange={handleMachineChange}
+                    renderValue={(selected) => selected.join(', ')}
                   >
                     {machines.map((machine, index) => (
-                      <FormControlLabel control={<Checkbox defaultChecked />} label="Label" />
-                      // <MenuItem key={index} value={machine}>
-                      //   Machine {index + 1}
-                      // </MenuItem>
+                      <MenuItem key={index} value={machine}>
+                        <Checkbox checked={selectedMachine.indexOf(machine) > -1} />
+                        <ListItemText primary={`Machine ${index + 1}`} />
+                      </MenuItem>
                     ))}
                   </Select>
                 )}
               </FormControl>
             </Grid>
-  
+
+            {!realTime && (
+              <>
+                <Grid item xs={12} md={3}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <DateTimePicker
+                      label="Start Time"
+                      value={startTime}
+                      onChange={handleStartTimeChange}
+                      slots={{ textField: (params) => <TextField {...params} fullWidth /> }}
+                    />
+                  </LocalizationProvider>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <DateTimePicker
+                      label="End Time"
+                      value={endTime}
+                      onChange={handleEndTimeChange}
+                      slots={{ textField: (params) => <TextField {...params} fullWidth /> }}
+                    />
+                  </LocalizationProvider>
+                </Grid>
+              </>
+            )}
+
             {/* KPI Cards and Pie Chart */}
             <Grid item xs={12} md={4}>
               {loadingKpis ? (
@@ -179,9 +263,9 @@ const Dashboard: React.FC = () => {
               )}
             </Grid>
             <Grid item xs={12} md={8}>
-              <PieChartComponent machineId={selectedMachine} plantId={selectedPlant} />
+              <PieChartComponent machineId={selectedMachine} plantId={selectedPlant} startTime={startTime} endTime={endTime} realTime={realTime}/>
             </Grid>
-  
+
             {/* Temperature and Humidity Graphs */}
             <Grid item xs={12} md={6}>
               <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['temperature']} />
@@ -195,7 +279,11 @@ const Dashboard: React.FC = () => {
               <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['vibration']} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power']} />
+              <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} />
+            </Grid>
+
+            <Grid item xs={12}>
+              <BarChartComponent machineIds={selectedMachine} plantId={selectedPlant}  />
             </Grid>
           </Grid>
         )}
@@ -207,9 +295,6 @@ const Dashboard: React.FC = () => {
             </Grid>
             <Grid item xs={12}>
               <BarChartFailureComponent plantId={selectedPlant} />
-            </Grid>
-            <Grid item xs={12}>
-              <BarChartComponent machineId={selectedMachine} plantId={selectedPlant} />
             </Grid>
           </Grid>
         )}

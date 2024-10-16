@@ -1,27 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
-import { Box, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, Typography, Paper, CircularProgress } from '@mui/material'; // Import CircularProgress
+import Plot from 'react-plotly.js';
+import { Box, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, Typography, Paper, CircularProgress, Checkbox, ListItemText } from '@mui/material';
 import { fetchNumFailures } from '../../Services/api';
+import { Data } from 'plotly.js'; // Import the Data type from Plotly
 
 interface BarChartComponentProps {
-  machineId: string;
+  machineIds: string[];
   plantId: string;
 }
 
-const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantId }) => {
+const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineIds, plantId }) => {
   const [data, setData] = useState<any[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [loading, setLoading] = useState<boolean>(true); // Loading state
+  const [loading, setLoading] = useState<boolean>(true);
 
   const handleMonthChange = (event: SelectChangeEvent<number>) => {
     setSelectedMonth(event.target.value as number);
@@ -33,19 +25,50 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true); // Start loading
+      setLoading(true);
       try {
-        const newData = await fetchNumFailures(selectedMonth, selectedYear, machineId, plantId);
-        setData(newData);
+        const allData = await Promise.all(
+          machineIds.map(id => fetchNumFailures(selectedMonth, selectedYear, id, plantId))
+        );
+
+        console.log("Fetched Data:", allData); // Log the fetched data
+
+        // Combine data from all machines
+        const combinedData = allData.reduce((acc, curr, index) => {
+          if (Array.isArray(curr)) {
+            curr.forEach((item: any) => {
+              const existing = acc.find((d: any) => d.day === item.day);
+              if (existing) {
+                existing[`failures_${index}`] = item.failures;
+              } else {
+                acc.push({ day: item.day, [`failures_${index}`]: item.failures });
+              }
+            });
+          } else {
+            console.error("Unexpected data format:", curr);
+          }
+          return acc;
+        }, []);
+
+        setData(combinedData);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
-        setLoading(false); // End loading
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, [selectedMonth, selectedYear, machineId, plantId]);
+  }, [selectedMonth, selectedYear, machineIds, plantId]);
+
+  const traces: Data[] = machineIds.map((id, index) => ({
+    x: data.map(item => item.day),
+    y: data.map(item => item[`failures_${index}`] || 0),
+    type: 'bar',
+    name: `Machine ${index + 1}`,
+    hoverinfo: 'x+y',
+    hovertemplate: `Machine ${index + 1}<br>Day: %{x}<br>Failures: %{y}<extra></extra>`,
+  }));
 
   return (
     <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
@@ -61,6 +84,14 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
               value={selectedMonth}
               onChange={handleMonthChange}
               label="Month"
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 224,
+                    width: 250,
+                  },
+                },
+              }}
             >
               {Array.from(Array(12).keys()).map((month) => (
                 <MenuItem key={month + 1} value={month + 1}>
@@ -76,6 +107,14 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
               value={selectedYear}
               onChange={handleYearChange}
               label="Year"
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 224,
+                    width: 250,
+                  },
+                },
+              }}
             >
               {Array.from(Array(10).keys()).map((year) => (
                 <MenuItem key={year + 2020} value={year + 2020}>
@@ -87,22 +126,31 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineId, plantI
         </Box>
       </Box>
 
-      {/* Conditional rendering based on loading state */}
       {loading ? (
         <Box display="flex" justifyContent="center" alignItems="center" height={400}>
           <CircularProgress />
         </Box>
       ) : (
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="failures" fill="#8884d8" />
-          </BarChart>
-        </ResponsiveContainer>
+        <Plot
+          data={traces}
+          layout={{
+            title: 'Failures per Day',
+            xaxis: { title: 'Day' },
+            yaxis: { title: 'Failures' },
+            autosize: true,
+            barmode: 'group',
+            showlegend: true,
+            legend: {
+              x: 1,
+              y: 1,
+              bgcolor: 'rgba(255, 255, 255, 0.5)',
+              bordercolor: 'rgba(0, 0, 0, 0.5)',
+              borderwidth: 1,
+            },
+          }}
+          useResizeHandler
+          style={{ width: '100%', height: '100%' }}
+        />
       )}
     </Paper>
   );
