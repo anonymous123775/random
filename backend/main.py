@@ -13,8 +13,9 @@ import database
 import data as d1
 import notification
 import asyncio
-from kpi import calculate_kpis, get_num_failures_month, fetch_machine_kpis, get_num_failures_per_machine
+from kpi import calculate_kpis, get_num_failures_month, fetch_machine_kpis, get_num_failures_per_machine, fetch_machine_kpis_not_realtime
 from online_offline_websocket import machine_status_websocket
+from datetime import datetime
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -135,6 +136,9 @@ def get_failures_endpoint(plant_id: str, db: Session = Depends(database.get_db),
 def get_machine_kpis(machine_id: str, plant_id: str, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_active_user)):
     return fetch_machine_kpis(machine_id,plant_id,db)
 
+@app.get("/api/machine-kpis-not-realtime")
+async def get_machine_kpis(machine_id: str, plant_id: str,startTime:datetime, endTime:datetime, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_active_user)):
+    return await fetch_machine_kpis_not_realtime(machine_id,plant_id,startTime, endTime,db)
 
 @app.websocket("/ws/data-stream")
 async def websocket_endpoint(websocket: WebSocket, machineId: int = Query(...), plantId: int = Query(...)):

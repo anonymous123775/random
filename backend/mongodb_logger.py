@@ -23,6 +23,10 @@ async def get_next_logid():
 
 async def log_to_mongodb(log_type: str, log_data: dict):
     logid = await get_next_logid()
+    if(log_type == "alert"):
+        log_data["iserrorlog"] = 1
+    else:
+        log_data["iserrorlog"] = 0 
     log_entry = {
         "Username": "Piyush",
         "Logid": logid,
