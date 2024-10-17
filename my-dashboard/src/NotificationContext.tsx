@@ -29,9 +29,10 @@ interface NotificationContextProps {
   setSeverityFilter: (severity: string) => void; // Add filter setter
 }
 
-export const NotificationContext = createContext<NotificationContextProps>({ notifications: [],
+export const NotificationContext = createContext<NotificationContextProps>({
+  notifications: [],
   setSeverityFilter: () => {}, // Default empty function
- });
+});
 
 interface NotificationProviderProps {
   children: ReactNode;
@@ -42,11 +43,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [groupedNotifications, setGroupedNotifications] = useState<GroupedNotification[]>([]);
   const [severityFilter, setSeverityFilter] = useState<string>(''); // Add state for severity filter
 
-
   useEffect(() => {
     const fetchNotifications = async () => {
       const data: Notification[] = await fetchNotificationsTyped();
-      console.log(data)
+      console.log(data);
       setRawNotifications(data);
       const grouped = groupNotificationsByPlantAndMachine(data);
       setGroupedNotifications(grouped);
@@ -65,15 +65,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       const data = JSON.parse(event.data);
       const notification: Notification = data.notification;
       console.log("new notification received: ", notification);
-      
+
       // Ensure the fields are correctly accessed
       const { plant_id, machine_id, parameter, severity } = notification;
 
-      // Determine toast type based on severity
+      // Show toast notifications only for severity "error" and "info"
       if (severity === "error") {
         toast.error(`Machine Offline: Plant ID ${plant_id}, Machine ID ${machine_id} - ${parameter} is offline!`);
-      } else if (severity === "warning") {
-        toast.warn(`Warning: Plant ID ${plant_id}, Machine ID ${machine_id} - ${parameter} exceeded threshold!`);
       } else if (severity === "info") {
         toast.info(`Machine Online: Plant ID ${plant_id}, Machine ID ${machine_id} - ${parameter} is back online.`);
       }
@@ -99,7 +97,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   const groupNotificationsByPlantAndMachine = (notifications: Notification[]): GroupedNotification[] => {
     const grouped = notifications.reduce((acc, notification) => {
-      const { plant_id, machine_id, parameter, threshold, timestamp, severity  } = notification;
+      const { plant_id, machine_id, parameter, threshold, timestamp, severity } = notification;
       const key = `${plant_id}-${machine_id}-${timestamp}`;
       if (!acc[key]) {
         acc[key] = { plantId: plant_id, machineId: machine_id, messages: [], parameters: [], timestamp, severity };
@@ -107,7 +105,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       acc[key].messages.push(`${parameter} exceeded threshold of ${threshold}`);
       acc[key].parameters.push({ parameter, threshold });
       return acc;
-    }, {} as Record<string, { plantId: string; machineId: string; messages: string[]; parameters: { parameter: string; threshold: string }[]; timestamp: string; severity: string  }>);
+    }, {} as Record<string, { plantId: string; machineId: string; messages: string[]; parameters: { parameter: string; threshold: string }[]; timestamp: string; severity: string }>);
 
     return Object.values(grouped).map(group => ({
       id: `${group.plantId}-${group.machineId}-${group.timestamp}`,

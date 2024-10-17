@@ -3,12 +3,20 @@ import Plot from 'react-plotly.js';
 import moment from 'moment'; // For formatting the time
 import { CircularProgress, Box, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, Typography, Paper } from '@mui/material';
 import { fetchHistoricalData } from '../../Services/api';
+import { Annotations } from 'plotly.js';
 
 interface LineChartComponentProps {
   machineId: string[];
   plantId: string;
   parameters: string[];
 }
+
+const NORMAL_RANGE: any = {
+  temperature: [40, 60],
+  humidity: [40, 50],
+  power_supply: [230, 240],
+  vibration: [0.2, 0.4]
+};
 
 const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plantId, parameters }) => {
   const [data, setData] = useState<any[]>([]);
@@ -141,18 +149,43 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
         }
       }
 
-      // console.log(`Aggregated Data for Machine ${id} - ${param}:`, aggregatedData);
-
-      return {
-        x: aggregatedData.map(item => moment(item.time).format('YYYY-MM-DD HH:mm:ss')),
-        y: aggregatedData.map(item => item.value),
-        mode: 'lines',
-        name: `Machine ${id} - ${param}`
-      };
+      return{    
+          x: aggregatedData.map(item => moment(item.time).format('YYYY-MM-DD HH:mm:ss')),
+          y: aggregatedData.map(item => item.value),
+          mode: 'lines',
+          name: `Machine ${id} - ${param}`
+      }
     })
   );
 
-
+  // Add normal range lines only once for each parameter
+  parameters.forEach(param => {
+    const [normalRangeMin, normalRangeMax] = NORMAL_RANGE[param];
+  
+    // Find the first trace for the current parameter
+    const firstTrace = traces.find(trace => trace.name.includes(param));
+  
+    if (firstTrace) {
+      const normalRangeMinLine = {
+        x: firstTrace.x,
+        y: Array(firstTrace.x.length).fill(normalRangeMin),
+        mode: 'lines',
+        name: `Normal Range Min - ${param}`,
+        line: { dash: 'dash', color: 'green' }
+      };
+  
+      const normalRangeMaxLine = {
+        x: firstTrace.x,
+        y: Array(firstTrace.x.length).fill(normalRangeMax),
+        mode: 'lines',
+        name: `Normal Range Max - ${param}`,
+        line: { dash: 'dash', color: 'red' }
+      };
+  
+      traces.push(normalRangeMinLine, normalRangeMaxLine);
+    }
+  });
+  
   // console.log('Traces:', traces); // Log traces
 
   // Calculate the range for the x-axis based on the selected timeframe
@@ -173,6 +206,29 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
   };
 
   const xRange = getXRange(timeframe);
+
+
+  // Find the last data point for each trace
+  const annotations:Partial<Annotations>[] = traces.map(trace => {
+    const lastIndex = trace.x.length - 1;
+    return {
+      xref: 'x',
+      yref: 'y',
+      x: trace.x[lastIndex],
+      y: trace.y[lastIndex],
+      text: `${trace.name}: ${trace.y[lastIndex] ?trace.y[lastIndex].toFixed(2):""}`,
+      showarrow: true,
+      arrowhead: 7,
+      ax: 0,
+      ay: -40
+    };
+  });
+
+  const lastPoint = traces.map(trace => ({
+    x: trace.x[trace.x.length - 1],
+    y: trace.y[trace.y.length - 1],
+    name: trace.name
+  }));
 
   return (
     <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
@@ -205,11 +261,14 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
           title: 'Machine Parameters Over Time',
           xaxis: { title: 'Time', tickformat: '%Y-%m-%d %H:%M:%S', range: xRange }, // Adjust x-axis range based on timeframe
           yaxis: { title: 'Value' },
-          legend: { title: { text: 'Machine and Parameter' } },
-          autosize: true
+          legend: { title: { text: 'Machine and Parameter' } , orientation: 'h', y: -0.2 },
+          autosize: true,
+          // annotations: annotations,
+          margin: { t: 40, b: 80, l: 40, r: 40 } // Adjust margins to maximize graph area
         }}
         useResizeHandler
         style={{ width: '100%', height: '100%' }}
+        // config={{ responsive: true }}
       />
     </Paper>
   );

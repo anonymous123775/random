@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Container, Grid, Card, CardContent, Typography, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Box, CircularProgress } from '@mui/material';
 import LineChartComponent from './Graph/LineChartComponent';
 import BarChartComponent from './Graph/BarChartComponent';
@@ -6,11 +6,12 @@ import PieChartComponent from './Graph/PieChartComponent';
 import { getMachineCount, getPlantCount, fetchMachineKpis, fetchKpiNotRealTime } from '../Services/api';
 import WebSocketPieChartComponent from './MachineStatusDashboard';
 import BarChartFailureComponent from './Graph/BarChartFailureComponent';
-import { Tabs, Tab, Checkbox, ListItemText, TextField, FormControlLabel, Switch } from '@mui/material';
+import { Tabs, Tab, Checkbox, ListItemText, TextField, FormControlLabel, Switch, Popper } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import LineChartNotRealtimeComponent from './Graph/LineChartNotRealTime';
+import { DatePicker } from '@mui/x-date-pickers';
 
 interface KPIData {
   uptime?: number;
@@ -32,6 +33,12 @@ const Dashboard: React.FC = () => {
   const [startTime, setStartTime] = useState<Date | null>(new Date());
   const [endTime, setEndTime] = useState<Date | null>(new Date());
   const [realTime, setRealTime] = useState<boolean>(true);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -50,7 +57,11 @@ const Dashboard: React.FC = () => {
     if (event.target.checked) {
     }
     else{
-      setStartTime(new Date(0)); // Set to epoch time or any very low value
+      const currentDate = new Date()
+      const previousDate = new Date(currentDate)
+      previousDate.setDate(currentDate.getDate() - 1)
+      
+      setStartTime(previousDate); // Set to epoch time or any very low value
       setEndTime(new Date()); // Current time
     }
   };
@@ -62,14 +73,20 @@ const Dashboard: React.FC = () => {
         setLoadingPlants(true);
         const machineData = await getMachineCount();
         const plantData = await getPlantCount();
+        // console.log(machineData)
         setMachines(machineData.distinct_machine_count);
         setPlants(plantData.distinct_plant_count);
+        setSelectedMachine(machineData.distinct_machine_count)
       } finally {
         setLoadingMachines(false);
         setLoadingPlants(false);
       }
     };
+    
+    fetchCounts();
+  },[])
 
+  useEffect(() => {
     const fetchKpis = async () => {
       try {
         setLoadingKpis(true);
@@ -105,8 +122,7 @@ const Dashboard: React.FC = () => {
     if (selectedMachine.length > 0 && selectedPlant) {
       fetchKpis();
     }
-    fetchCounts();
-  }, [selectedMachine, selectedPlant, realTime]);
+  }, [selectedMachine, selectedPlant, realTime, startTime, endTime]);
 
   const handleMachineChange = (event: SelectChangeEvent<string[]>) => {
     setSelectedMachine(event.target.value as string[]);
@@ -127,9 +143,9 @@ const Dashboard: React.FC = () => {
   const downtimeHMS = kpis.downtime !== undefined ? convertMinutesToHMS(kpis.downtime) : { hours: 0, mins: 0, secs: 0 };
   const failureRatePercentage = kpis.failure_rate !== undefined ? (kpis.failure_rate * 100).toFixed(2) : 'Loading...';
 
-  useEffect(() => {
-    console.log(startTime,endTime)
-  },[startTime,endTime])
+  // useEffect(() => {
+  //   console.log(startTime,endTime)
+  // },[startTime,endTime])
 
   return (
     <Container maxWidth="xl">
@@ -207,7 +223,8 @@ const Dashboard: React.FC = () => {
                       label="Start Time"
                       value={startTime}
                       onChange={handleStartTimeChange}
-                      slots={{ textField: (params) => <TextField {...params} fullWidth /> }}
+                      slots={{ textField: (params) => <TextField {...params} fullWidth/> }}
+                      
                     />
                   </LocalizationProvider>
                 </Grid>

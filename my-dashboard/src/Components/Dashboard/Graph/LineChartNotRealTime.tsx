@@ -12,6 +12,13 @@ interface LineChartComponentProps {
   endTime: Date|null;
 }
 
+const NORMAL_RANGE: any = {
+  temperature: [40, 60],
+  humidity: [40, 50],
+  power_supply: [230, 240],
+  vibration: [0.2, 0.4]
+};
+
 const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ machineId, plantId, parameters, startTime, endTime }) => {
   const [data, setData] = useState<any[]>([]);
   const [timeframe, setTimeframe] = useState('5m');
@@ -105,21 +112,43 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
         }
       }
 
-      // console.log(`Aggregated Data for Machine ${id} - ${param}:`, aggregatedData);
-
-      return {
+      return{
         x: aggregatedData.map(item => moment(item.time).format('YYYY-MM-DD HH:mm:ss')),
         y: aggregatedData.map(item => item.value),
         mode: 'lines',
         name: `Machine ${id} - ${param}`
-      };
+      }
     })
-  );
+  ).flat();
 
+  // Add normal range lines only once for each parameter
+  parameters.forEach(param => {
+    const [normalRangeMin, normalRangeMax] = NORMAL_RANGE[param];
+  
+    // Find the first trace for the current parameter
+    const firstTrace = traces.find(trace => trace.name.includes(param));
+  
+    if (firstTrace) {
+      const normalRangeMinLine = {
+        x: firstTrace.x,
+        y: Array(firstTrace.x.length).fill(normalRangeMin),
+        mode: 'lines',
+        name: `Normal Range Min - ${param}`,
+        line: { dash: 'dash', color: 'green' }
+      };
+  
+      const normalRangeMaxLine = {
+        x: firstTrace.x,
+        y: Array(firstTrace.x.length).fill(normalRangeMax),
+        mode: 'lines',
+        name: `Normal Range Max - ${param}`,
+        line: { dash: 'dash', color: 'red' }
+      };
+  
+      traces.push(normalRangeMinLine, normalRangeMaxLine);
+    }
+  });
 
-  // console.log('Traces:', traces); // Log traces
-
-  // Calculate the range for the x-axis based on the selected timeframe
   const getXRange = (timeframe: string) => {
     const now = moment().valueOf();
     const timeMapping: { [key: string]: number } = {
@@ -129,11 +158,11 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
       '30m': 1800000, // 30 minutes in milliseconds
       '1h': 3600000, // 1 hour in milliseconds
       '6h': 21600000, // 6 hours in milliseconds
-      '12h': 43200000, // 12 hours in milliseconds
-      '24h': 86400000 // 24 hours in milliseconds
+      '12h': 43200000, 
+      '24h': 86400000
     };
 
-    return [now - (timeMapping[timeframe] || 300000), now]; // Default to 5 minutes if not found
+    return [maxTime - (timeMapping[timeframe] || 300000), maxTime]; // Default to 5 minutes if not found
   };
 
   const xRange = getXRange(timeframe);
@@ -166,11 +195,12 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
       <Plot
         data={traces}
         layout={{
-          title: 'Machine Parameters Over Time',
+          // title: 'Machine Parameters Over Time',
           xaxis: { title: 'Time', tickformat: '%Y-%m-%d %H:%M:%S', range: xRange }, // Adjust x-axis range based on timeframe
           yaxis: { title: 'Value' },
-          legend: { title: { text: 'Machine and Parameter' } },
-          autosize: true
+          legend: { title: { text: 'Machine and Parameter' } , orientation: 'h', y: -0.2 },
+          autosize: true,
+          margin: { t: 30, b: 80, l: 40, r: 30 } // Adjust margins to maximize graph area
         }}
         useResizeHandler
         style={{ width: '100%', height: '100%' }}

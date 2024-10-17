@@ -24,14 +24,18 @@ async def get_historical_machine_data(machineId: int, plantId: int, startTime: d
         
         start_time_ns = int(startTime.timestamp() * 1e9)
         end_time_ns = int(endTime.timestamp() * 1e9)
+        
+        diff = (endTime - startTime).days
 
         # Query to fetch historical data
         query = f'''
             SELECT * FROM "machine_data"
             WHERE "machine_id" = {machineId} AND "plant_id" = {plantId}
             AND time > {start_time_ns} AND time <= {end_time_ns}
-            ORDER BY time ASC
         '''
+        
+        # if(diff < 5):
+        #     query += " GROUP BY time"
         
         result = client.query(query)
         
