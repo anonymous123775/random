@@ -9,6 +9,7 @@ interface LineChartComponentProps {
   machineId: string[];
   plantId: string;
   parameters: string[];
+  realtimeData: any[];
 }
 
 const NORMAL_RANGE: any = {
@@ -18,7 +19,7 @@ const NORMAL_RANGE: any = {
   vibration: [0.2, 0.4]
 };
 
-const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plantId, parameters }) => {
+const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plantId, parameters, realtimeData }) => {
   const [data, setData] = useState<any[]>([]);
   const [timeframe, setTimeframe] = useState('5m');
   const [loading, setLoading] = useState<boolean>(true);
@@ -45,43 +46,13 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
     fetchData();
   }, [machineId, plantId, timeframe]);
 
-  // WebSocket to get real-time updates
   useEffect(() => {
-    const sockets = machineId.map(id => {
-      const socket = new WebSocket(`ws://localhost:8000/ws/data-stream?machineId=${id}&plantId=${plantId}`);
-      
-      socket.onmessage = (event) => {
-        const newData = JSON.parse(event.data);
-
-        // Filter data for the specific machine and plant and map time
-        const filteredData = newData
-          .filter((item: any) => item.machine_id === Number(id) && item.plant_id === Number(plantId))
-          .map((item: any) => ({
-            ...item,
-            time: moment(item.time).valueOf(), // Store timestamp for consistency
-          }));
-
-        // Combine historical data with real-time data
-        setData((prevData) => {
-          const combinedData = [...prevData, ...filteredData];
-          const uniqueData = Array.from(new Map(combinedData.map(item => [item.time, item])).values());
-          // console.log('Updated Data:', uniqueData); // Log updated data
-          return uniqueData;
-        });
-      };
-
-      socket.onclose = (event) => {
-        console.log('WebSocket connection closed:', event);
-      };
-
-      return socket;
-    });
-
-    return () => {
-      sockets.forEach(socket => socket.close()); // Close all sockets when component unmounts
-    };
-
-  }, [machineId, plantId, timeframe]);
+    setData((prevData) => {
+        const combinedData = [...prevData, ...realtimeData];
+        const uniqueData = Array.from(new Map(combinedData.map(item => [item.time, item])).values());
+        return uniqueData;
+      });
+  },[realtimeData])
 
   const handleTimeframeChange = (event: SelectChangeEvent<string>) => {
     setTimeframe(event.target.value);
@@ -94,8 +65,6 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
       </Box>
     );
   }
-
-  // Generate time intervals based on the selected timeframe
   const generateTimeIntervals = (start: number, end: number, interval: string) => {
     const intervals = [];
     let current = moment(start);
@@ -107,7 +76,7 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
       'd': 'days'
     };
 
-    const intervalUnit = intervalMapping[interval] || 'minutes'; // Default to minutes if not found
+    const intervalUnit = intervalMapping[interval] || 'minutes'; 
 
     while (current <= endMoment) {
       intervals.push(current.valueOf());
@@ -119,19 +88,18 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
 
   const minTime = Math.min(...data.map(item => item.time));
   const maxTime = Math.max(...data.map(item => item.time));
-  const intervalUnit = timeframe.slice(-1); // Get the unit (m, h, etc.)
+  const intervalUnit = timeframe.slice(-1);
   const timeIntervals = generateTimeIntervals(minTime, maxTime, intervalUnit);
 
-  // Determine aggregation window based on timeframe
   const getAggregationWindow = (timeframe: string) => {
-    if (timeframe === '1m') return 15; // 15 seconds
-    if (timeframe === '5m') return 30; // 30 seconds
-    if (timeframe.endsWith('m')) return 60; // 1 minute for other minute-based timeframes
-    if (timeframe.endsWith('h') && parseInt(timeframe) >= 6) return 1800; // 30 minutes for 6 hours or more
-    return 60; // Default to 1 minute
+    if (timeframe === '1m') return 5;
+    if (timeframe === '5m') return 15; 
+    if (timeframe.endsWith('m')) return 30;
+    if (timeframe.endsWith('h') && parseInt(timeframe) >= 6) return 300;
+    return 60;
   };
 
-  const aggregationWindow = getAggregationWindow(timeframe) * 1000; // Convert to milliseconds
+  const aggregationWindow = getAggregationWindow(timeframe) * 1000;
 
   const traces = machineId.flatMap(id =>
     parameters.map(param => {
@@ -157,14 +125,9 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
       }
     })
   );
-
-  // Add normal range lines only once for each parameter
   parameters.forEach(param => {
     const [normalRangeMin, normalRangeMax] = NORMAL_RANGE[param];
-  
-    // Find the first trace for the current parameter
     const firstTrace = traces.find(trace => trace.name.includes(param));
-  
     if (firstTrace) {
       const normalRangeMinLine = {
         x: firstTrace.x,
@@ -185,50 +148,39 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
       traces.push(normalRangeMinLine, normalRangeMaxLine);
     }
   });
-  
-  // console.log('Traces:', traces); // Log traces
 
-  // Calculate the range for the x-axis based on the selected timeframe
   const getXRange = (timeframe: string) => {
     const now = moment().valueOf();
     const timeMapping: { [key: string]: number } = {
-      '1m': 60000, // 1 minute in milliseconds
-      '5m': 300000, // 5 minutes in milliseconds
-      '15m': 900000, // 15 minutes in milliseconds
-      '30m': 1800000, // 30 minutes in milliseconds
-      '1h': 3600000, // 1 hour in milliseconds
-      '6h': 21600000, // 6 hours in milliseconds
-      '12h': 43200000, // 12 hours in milliseconds
-      '24h': 86400000 // 24 hours in milliseconds
+      '1m': 60000,
+      '5m': 300000,
+      '15m': 900000,
+      '30m': 1800000,
+      '1h': 3600000,
+      '6h': 21600000,
+      '12h': 43200000,
+      '24h': 86400000
     };
 
-    return [now - (timeMapping[timeframe] || 300000), now]; // Default to 5 minutes if not found
+    return [now - (timeMapping[timeframe] || 300000), now];
   };
 
   const xRange = getXRange(timeframe);
-
-
-  // Find the last data point for each trace
-  const annotations:Partial<Annotations>[] = traces.map(trace => {
+  const annotations: Partial<Annotations>[] = traces.filter(trace => trace.x.length > 0 && trace.y.length > 0).map((trace, index) => {
     const lastIndex = trace.x.length - 1;
     return {
       xref: 'x',
       yref: 'y',
       x: trace.x[lastIndex],
       y: trace.y[lastIndex],
-      text: `${trace.name}: ${trace.y[lastIndex] ?trace.y[lastIndex].toFixed(2):""}`,
+      text: `${trace.name} : ${trace.y[lastIndex] ? trace.y[lastIndex].toFixed(2) : ""}`,
       showarrow: true,
       arrowhead: 7,
-      ax: 0,
-      ay: -40
+      ax: -40,
+      ay: -30 - (index* 20), 
+      align: "center"    
     };
   });
-
-  const lastPoint = traces.map(trace => ({
-    x: trace.x[trace.x.length - 1],
-    y: trace.y[trace.y.length - 1],
-    name: trace.name
-  }));
 
   return (
     <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
@@ -258,17 +210,15 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
       <Plot
         data={traces}
         layout={{
-          title: 'Machine Parameters Over Time',
-          xaxis: { title: 'Time', tickformat: '%Y-%m-%d %H:%M:%S', range: xRange }, // Adjust x-axis range based on timeframe
+          xaxis: { title: 'Time', tickformat: '%Y-%m-%d %H:%M:%S', range: xRange },
           yaxis: { title: 'Value' },
           legend: { title: { text: 'Machine and Parameter' } , orientation: 'h', y: -0.2 },
           autosize: true,
           // annotations: annotations,
-          margin: { t: 40, b: 80, l: 40, r: 40 } // Adjust margins to maximize graph area
+          margin: { t: 40, b: 80, l: 40, r: 40 }
         }}
         useResizeHandler
         style={{ width: '100%', height: '100%' }}
-        // config={{ responsive: true }}
       />
     </Paper>
   );

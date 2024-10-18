@@ -90,7 +90,7 @@ async def calculate_kpi_values(data_results, machine_id, plant_id, start_time, e
     # print(points)
 
     if not points:
-        print("points is empty")
+        # print("points is empty")
         return uptime, downtime, num_alerts
     
     points = points[0]
@@ -305,8 +305,8 @@ async def fetch_machine_kpis_not_realtime(machine_id: str,plant_id: str,startTim
             AND time > {start_time_ns} AND time <= {end_time_ns}
         '''
         data_results = client.query(data_query)
-        print("startTime : ",start_time_ns, startTime)
-        print("endTime : ",end_time_ns,endTime)
+        # print("startTime : ",start_time_ns, startTime)
+        # print("endTime : ",end_time_ns,endTime)
         
         # print("data_results : ",data_results)
         # Calculate KPIs based on the data
@@ -338,7 +338,7 @@ def calculate_kpi_values_no(data_results, machine_id, plant_id, start_time, end_
     points = list(data_results)
 
     if not points:
-        print("points is empty")
+        # print("points is empty")
         return uptime, downtime, num_alerts
     
     points = points[0]
@@ -381,3 +381,147 @@ def calculate_kpi_values_no(data_results, machine_id, plant_id, start_time, end_
         db.close()
 
     return uptime, downtime, num_alerts
+
+# from collections import defaultdict
+# from datetime import datetime, timezone
+
+# # Simple in-memory cache
+# cache = defaultdict(dict)
+
+# def cache_key(machine_id: str, plant_id: str, start_time: datetime, end_time: datetime) -> str:
+#     return f"{machine_id}_{plant_id}_{start_time.timestamp()}_{end_time.timestamp()}"
+
+# def get_cached_data(machine_id: str, plant_id: str, start_time: datetime, end_time: datetime):
+#     for key, data in cache.items():
+#         cached_start, cached_end = map(lambda x: datetime.fromtimestamp(float(x), tz=timezone.utc), key.split('_')[-2:])
+#         if cached_start <= end_time and cached_end >= start_time:
+#             return data, max(start_time, cached_start), min(end_time, cached_end)
+#     return None, None, None
+
+# def set_cached_data(machine_id: str, plant_id: str, start_time: datetime, end_time: datetime, data):
+#     key = cache_key(machine_id, plant_id, start_time, end_time)
+#     cache[key] = data
+
+# async def fetch_machine_kpis_not_realtime(machine_id: str, plant_id: str, startTime: datetime, endTime: datetime, db: Session):
+#     try:
+#         # Ensure startTime and endTime are timezone-aware
+#         if startTime.tzinfo is None:
+#             startTime = startTime.replace(tzinfo=timezone.utc)
+#         if endTime.tzinfo is None:
+#             endTime = endTime.replace(tzinfo=timezone.utc)
+
+#         # Check if data is already cached
+#         cached_data, cached_start, cached_end = get_cached_data(machine_id, plant_id, startTime, endTime)
+#         if cached_data:
+#             # Use cached data for the overlapping interval
+#             result = cached_data
+#             if cached_start > startTime:
+#                 # Fetch data for the interval before the cached data
+#                 pre_cached_data = await fetch_machine_kpis_not_realtime(machine_id, plant_id, startTime, cached_start, db)
+#                 result = combine_results(pre_cached_data, result)
+#             if cached_end < endTime:
+#                 # Fetch data for the interval after the cached data
+#                 post_cached_data = await fetch_machine_kpis_not_realtime(machine_id, plant_id, cached_end, endTime, db)
+#                 result = combine_results(result, post_cached_data)
+#             return result
+
+#         # Fetch data points for the given time range from InfluxDB
+#         start_time_ns = int(startTime.timestamp() * 1e9)
+#         end_time_ns = int(endTime.timestamp() * 1e9)
+
+#         data_query = f'''
+#             SELECT * FROM "machine_data" 
+#             WHERE "plant_id" = {plant_id} AND "machine_id" = {machine_id}
+#             AND time > {start_time_ns} AND time <= {end_time_ns}
+#         '''
+#         data_results = client.query(data_query)
+
+#         # Check if data_results is None
+#         if data_results is None:
+#             raise ValueError("No data returned from InfluxDB")
+
+#         # Calculate KPIs based on the data
+#         uptime, downtime, num_alerts = calculate_kpi_values_no(data_results, machine_id, plant_id, startTime, endTime, db)
+
+#         result = {
+#             "plant_id": plant_id,
+#             "machine_id": machine_id,
+#             "uptime": uptime,
+#             "downtime": downtime,
+#             "num_alerts_triggered": num_alerts,
+#             "failure_rate": num_alerts / (uptime + downtime) if (uptime + downtime) > 0 else 0.0
+#         }
+
+#         print(result)
+#         # Cache the result
+#         set_cached_data(machine_id, plant_id, startTime, endTime, result)
+
+#         return result
+
+#     except Exception as e:
+#         print(f"An error occurred while fetching and calculating KPIs: {e}")
+#         return None
+
+# def combine_results(result1, result2):
+#     combined_result = {
+#         "plant_id": result1["plant_id"],
+#         "machine_id": result1["machine_id"],
+#         "uptime": result1["uptime"] + result2["uptime"],
+#         "downtime": result1["downtime"] + result2["downtime"],
+#         "num_alerts_triggered": result1["num_alerts_triggered"] + result2["num_alerts_triggered"],
+#         "failure_rate": (result1["num_alerts_triggered"] + result2["num_alerts_triggered"]) / 
+#                         (result1["uptime"] + result1["downtime"] + result2["uptime"] + result2["downtime"]) 
+#                         if (result1["uptime"] + result1["downtime"] + result2["uptime"] + result2["downtime"]) > 0 else 0.0
+#     }
+#     return combined_result
+
+# def calculate_kpi_values_no(data_results, machine_id, plant_id, start_time, end_time, db: Session):
+#     uptime = 0
+#     downtime = 0
+#     num_alerts = 0
+
+#     points = list(data_results)
+
+#     if not points:
+#         return uptime, downtime, num_alerts
+
+#     # Ensure points is a list of dictionaries
+#     if isinstance(points, list):
+#         points = points
+
+#     if len(points) > 1:
+#         for i in range(1, len(points)):
+#             if datetime.strptime(points[i]["time"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc) > start_time:
+#                 start_point = points[i - 1]
+#                 end_point = points[i]
+
+#                 start_time_point = datetime.strptime(start_point['time'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+#                 end_time_point = datetime.strptime(end_point['time'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+#                 duration = (end_time_point - start_time_point).total_seconds() / 60
+
+#                 if start_point['machine_status'] == 1:
+#                     uptime += duration
+#                 else:
+#                     downtime += duration
+
+#     elif len(points) == 1:
+#         start_time_point = start_time
+#         end_time_point = datetime.strptime(points['time'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+#         duration = (end_time_point - start_time_point).total_seconds() / 60
+
+#         if points['machine_status'] == 1:
+#             uptime += duration
+#         else:
+#             downtime += duration
+
+#     try:
+#         num_alerts = db.query(Notification).filter(
+#             Notification.machine_id == machine_id,
+#             Notification.plant_id == plant_id,
+#             Notification.timestamp > start_time,
+#             Notification.timestamp <= end_time
+#         ).count()
+#     finally:
+#         db.close()
+
+#     return uptime, downtime, num_alerts

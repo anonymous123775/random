@@ -2,14 +2,13 @@ import React, { useEffect, useState } from 'react';
 import Plot from 'react-plotly.js';
 import moment from 'moment'; // For formatting the time
 import { CircularProgress, Box, FormControl, InputLabel, MenuItem, Select, SelectChangeEvent, Typography, Paper } from '@mui/material';
-import { fetchHistoricalData, fetchHistoricalMachineData } from '../../Services/api';
 
 interface LineChartComponentProps {
   machineId: string[];
   plantId: string;
   parameters: string[];
-  startTime: Date|null;
-  endTime: Date|null;
+  data: any[];
+  loading: boolean
 }
 
 const NORMAL_RANGE: any = {
@@ -19,32 +18,8 @@ const NORMAL_RANGE: any = {
   vibration: [0.2, 0.4]
 };
 
-const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ machineId, plantId, parameters, startTime, endTime }) => {
-  const [data, setData] = useState<any[]>([]);
+const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ machineId, data, parameters, loading}) => {
   const [timeframe, setTimeframe] = useState('5m');
-  const [loading, setLoading] = useState<boolean>(true);
-
-  // Fetch historical data based on the selected timeframe
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const allData = await Promise.all(machineId.map(id => fetchHistoricalMachineData(id, plantId, startTime, endTime)));
-        const combinedData = allData.flat().map((item: any) => ({
-          ...item,
-          time: moment(item.time).valueOf(), // Use timestamps for more reliable filtering
-        }));
-        const uniqueData = Array.from(new Map(combinedData.map(item => [item.time, item])).values());
-        // console.log('Fetched Data:', uniqueData); // Log fetched data
-        setData(uniqueData);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching historical data:', error);
-      }
-    };
-
-    fetchData();
-  }, [machineId, plantId, timeframe]);
 
   const handleTimeframeChange = (event: SelectChangeEvent<string>) => {
     setTimeframe(event.target.value);
@@ -57,8 +32,7 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
       </Box>
     );
   }
-
-  // Generate time intervals based on the selected timeframe
+  
   const generateTimeIntervals = (start: number, end: number, interval: string) => {
     const intervals = [];
     let current = moment(start);
@@ -70,7 +44,7 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
       'd': 'days'
     };
 
-    const intervalUnit = intervalMapping[interval] || 'minutes'; // Default to minutes if not found
+    const intervalUnit = intervalMapping[interval] || 'minutes';
 
     while (current <= endMoment) {
       intervals.push(current.valueOf());
@@ -82,19 +56,17 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
 
   const minTime = Math.min(...data.map(item => item.time));
   const maxTime = Math.max(...data.map(item => item.time));
-  const intervalUnit = timeframe.slice(-1); // Get the unit (m, h, etc.)
+  const intervalUnit = timeframe.slice(-1);
   const timeIntervals = generateTimeIntervals(minTime, maxTime, intervalUnit);
-
-  // Determine aggregation window based on timeframe
   const getAggregationWindow = (timeframe: string) => {
-    if (timeframe === '1m') return 15; // 15 seconds
-    if (timeframe === '5m') return 30; // 30 seconds
-    if (timeframe.endsWith('m')) return 60; // 1 minute for other minute-based timeframes
-    if (timeframe.endsWith('h') && parseInt(timeframe) >= 6) return 1800; // 30 minutes for 6 hours or more
-    return 60; // Default to 1 minute
+    if (timeframe === '1m') return 15;
+    if (timeframe === '5m') return 30;
+    if (timeframe.endsWith('m')) return 60;
+    if (timeframe.endsWith('h') && parseInt(timeframe) >= 6) return 1800;
+    return 60;
   };
 
-  const aggregationWindow = getAggregationWindow(timeframe) * 1000; // Convert to milliseconds
+  const aggregationWindow = getAggregationWindow(timeframe) * 1000;
 
   const traces = machineId.flatMap(id =>
     parameters.map(param => {
@@ -121,13 +93,10 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
     })
   ).flat();
 
-  // Add normal range lines only once for each parameter
+
   parameters.forEach(param => {
     const [normalRangeMin, normalRangeMax] = NORMAL_RANGE[param];
-  
-    // Find the first trace for the current parameter
     const firstTrace = traces.find(trace => trace.name.includes(param));
-  
     if (firstTrace) {
       const normalRangeMinLine = {
         x: firstTrace.x,
@@ -152,17 +121,16 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
   const getXRange = (timeframe: string) => {
     const now = moment().valueOf();
     const timeMapping: { [key: string]: number } = {
-      '1m': 60000, // 1 minute in milliseconds
-      '5m': 300000, // 5 minutes in milliseconds
-      '15m': 900000, // 15 minutes in milliseconds
-      '30m': 1800000, // 30 minutes in milliseconds
-      '1h': 3600000, // 1 hour in milliseconds
-      '6h': 21600000, // 6 hours in milliseconds
+      '1m': 60000,
+      '5m': 300000,
+      '15m': 900000,
+      '30m': 1800000,
+      '1h': 3600000, 
+      '6h': 21600000,
       '12h': 43200000, 
       '24h': 86400000
     };
-
-    return [maxTime - (timeMapping[timeframe] || 300000), maxTime]; // Default to 5 minutes if not found
+    return [maxTime - (timeMapping[timeframe] || 300000), maxTime];
   };
 
   const xRange = getXRange(timeframe);
@@ -195,12 +163,11 @@ const LineChartNotRealtimeComponent: React.FC<LineChartComponentProps> = ({ mach
       <Plot
         data={traces}
         layout={{
-          // title: 'Machine Parameters Over Time',
-          xaxis: { title: 'Time', tickformat: '%Y-%m-%d %H:%M:%S', range: xRange }, // Adjust x-axis range based on timeframe
+          xaxis: { title: 'Time', tickformat: '%Y-%m-%d %H:%M:%S', range: xRange },
           yaxis: { title: 'Value' },
           legend: { title: { text: 'Machine and Parameter' } , orientation: 'h', y: -0.2 },
           autosize: true,
-          margin: { t: 30, b: 80, l: 40, r: 30 } // Adjust margins to maximize graph area
+          margin: { t: 30, b: 80, l: 40, r: 30 }
         }}
         useResizeHandler
         style={{ width: '100%', height: '100%' }}

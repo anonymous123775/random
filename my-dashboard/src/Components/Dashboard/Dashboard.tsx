@@ -1,17 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Container, Grid, Card, CardContent, Typography, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Box, CircularProgress } from '@mui/material';
-import LineChartComponent from './Graph/LineChartComponent';
 import BarChartComponent from './Graph/BarChartComponent';
 import PieChartComponent from './Graph/PieChartComponent';
-import { getMachineCount, getPlantCount, fetchMachineKpis, fetchKpiNotRealTime } from '../Services/api';
+import { getMachineCount, getPlantCount, fetchMachineKpis, fetchKpiNotRealTime} from '../Services/api';
 import WebSocketPieChartComponent from './MachineStatusDashboard';
 import BarChartFailureComponent from './Graph/BarChartFailureComponent';
-import { Tabs, Tab, Checkbox, ListItemText, TextField, FormControlLabel, Switch, Popper } from '@mui/material';
+import { Tabs, Tab, Checkbox, ListItemText, TextField, FormControlLabel, Switch } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import LineChartNotRealtimeComponent from './Graph/LineChartNotRealTime';
-import { DatePicker } from '@mui/x-date-pickers';
+import GraphsComponent from './GraphComponent';
+import GraphsComponentNotRealtime from './GraphComponentNotRealtime';
 
 interface KPIData {
   uptime?: number;
@@ -33,12 +32,6 @@ const Dashboard: React.FC = () => {
   const [startTime, setStartTime] = useState<Date | null>(new Date());
   const [endTime, setEndTime] = useState<Date | null>(new Date());
   const [realTime, setRealTime] = useState<boolean>(true);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
-
-  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -61,8 +54,8 @@ const Dashboard: React.FC = () => {
       const previousDate = new Date(currentDate)
       previousDate.setDate(currentDate.getDate() - 1)
       
-      setStartTime(previousDate); // Set to epoch time or any very low value
-      setEndTime(new Date()); // Current time
+      setStartTime(previousDate); 
+      setEndTime(new Date()); 
     }
   };
 
@@ -73,7 +66,6 @@ const Dashboard: React.FC = () => {
         setLoadingPlants(true);
         const machineData = await getMachineCount();
         const plantData = await getPlantCount();
-        // console.log(machineData)
         setMachines(machineData.distinct_machine_count);
         setPlants(plantData.distinct_plant_count);
         setSelectedMachine(machineData.distinct_machine_count)
@@ -82,7 +74,6 @@ const Dashboard: React.FC = () => {
         setLoadingPlants(false);
       }
     };
-    
     fetchCounts();
   },[])
 
@@ -97,7 +88,6 @@ const Dashboard: React.FC = () => {
               : fetchKpiNotRealTime(machine, selectedPlant, startTime, endTime)
           )
         );
-        // console.log(kpiData)
         const aggregatedKpis = kpiData.flat().reduce((acc, kpi) => {
           if (kpi) {
             acc.uptime += kpi.uptime || 0;
@@ -107,8 +97,6 @@ const Dashboard: React.FC = () => {
           }
           return acc;
         }, { uptime: 0, downtime: 0, failure_rate: 0, num_alerts_triggered: 0 });
-        // console.log("aggregated data : ",aggregatedKpis)
-        // Calculate the average failure rate
         if (selectedMachine.length > 0) {
           aggregatedKpis.failure_rate = aggregatedKpis.failure_rate / selectedMachine.length;
         }
@@ -122,7 +110,9 @@ const Dashboard: React.FC = () => {
     if (selectedMachine.length > 0 && selectedPlant) {
       fetchKpis();
     }
-  }, [selectedMachine, selectedPlant, realTime, startTime, endTime]);
+  }, [selectedMachine, selectedPlant, startTime, endTime]);
+
+  
 
   const handleMachineChange = (event: SelectChangeEvent<string[]>) => {
     setSelectedMachine(event.target.value as string[]);
@@ -143,9 +133,6 @@ const Dashboard: React.FC = () => {
   const downtimeHMS = kpis.downtime !== undefined ? convertMinutesToHMS(kpis.downtime) : { hours: 0, mins: 0, secs: 0 };
   const failureRatePercentage = kpis.failure_rate !== undefined ? (kpis.failure_rate * 100).toFixed(2) : 'Loading...';
 
-  // useEffect(() => {
-  //   console.log(startTime,endTime)
-  // },[startTime,endTime])
 
   return (
     <Container maxWidth="xl">
@@ -285,43 +272,14 @@ const Dashboard: React.FC = () => {
             </Grid>
             {realTime ?(
               <>
-                {/* Temperature and Humidity Graphs */}
-                <Grid item xs={12} md={6}>
-                  <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['temperature']} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['humidity']} />
-                </Grid>
-      
-                {/* Vibration and Power Graphs */}
-                <Grid item xs={12} md={6}>
-                  <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['vibration']} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} />
-                </Grid>
+                <GraphsComponent selectedMachine={selectedMachine} selectedPlant={selectedPlant}/>
               </>
             ):(
               <>
-                {/* Temperature and Humidity Graphs */}
-                <Grid item xs={12} md={6}>
-                  <LineChartNotRealtimeComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['temperature']} startTime={startTime} endTime={endTime} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <LineChartNotRealtimeComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['humidity']} startTime={startTime} endTime={endTime} />
-                </Grid>
-      
-                {/* Vibration and Power Graphs */}
-                <Grid item xs={12} md={6}>
-                  <LineChartNotRealtimeComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['vibration']} startTime={startTime} endTime={endTime} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <LineChartNotRealtimeComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} startTime={startTime} endTime={endTime} />
-                </Grid>
+                <GraphsComponentNotRealtime selectedMachine={selectedMachine} selectedPlant={selectedPlant} startTime={startTime} endTime={endTime} />
               </>
             )
             }
-
             <Grid item xs={12}>
               <BarChartComponent machineIds={selectedMachine} plantId={selectedPlant}  />
             </Grid>

@@ -27,13 +27,11 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineIds, plant
     const fetchData = async () => {
       setLoading(true);
       try {
+        console.log("Bar Chart Data fetched")
         const allData = await Promise.all(
           machineIds.map(id => fetchNumFailures(selectedMonth, selectedYear, id, plantId))
         );
 
-        console.log("Fetched Data:", allData); // Log the fetched data
-
-        // Combine data from all machines
         const combinedData = allData.reduce((acc, curr, index) => {
           if (Array.isArray(curr)) {
             curr.forEach((item: any) => {
@@ -73,9 +71,6 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineIds, plant
   return (
     <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-        <Typography variant="h6" gutterBottom marginLeft={6}>
-          Failures per Day
-        </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <FormControl variant="outlined" size="small">
             <InputLabel id="month-select-label">Month</InputLabel>
@@ -147,6 +142,7 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineIds, plant
               bordercolor: 'rgba(0, 0, 0, 0.5)',
               borderwidth: 1,
             },
+            margin: { t: 40, b: 80, l: 40, r: 40 }
           }}
           useResizeHandler
           style={{ width: '100%', height: '100%' }}

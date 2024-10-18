@@ -46,11 +46,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   useEffect(() => {
     const fetchNotifications = async () => {
       const data: Notification[] = await fetchNotificationsTyped();
-      console.log(data);
+      // console.log(data);
       setRawNotifications(data);
       const grouped = groupNotificationsByPlantAndMachine(data);
       setGroupedNotifications(grouped);
-      console.log(grouped);
+      // console.log(grouped);
     };
 
     fetchNotifications();
@@ -64,7 +64,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       const notification: Notification = data.notification;
-      console.log("new notification received: ", notification);
+      // console.log("new notification received: ", notification);
 
       // Ensure the fields are correctly accessed
       const { plant_id, machine_id, parameter, severity } = notification;

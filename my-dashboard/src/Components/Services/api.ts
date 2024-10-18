@@ -56,7 +56,7 @@ export const fetchHistoricalData = async (machineId: string, plantId: string, ti
 
 
 export const fetchHistoricalMachineData = async (machineId: string, plantId: string, startTime: Date|null, endTime: Date|null) => {
-    console.log(machineId,plantId,startTime,endTime)
+    // console.log(machineId,plantId,startTime,endTime)
     const response = await axios.get(`${API_URL}/historical-data-start-end`, {
         headers: {
             ...getAuthHeaders().headers,

@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import Plot from 'react-plotly.js';
-import { CircularProgress, Box, Typography, Paper } from '@mui/material';
+import { CircularProgress, Box, Paper } from '@mui/material';
 import { fetchMachineKpis, fetchKpiNotRealTime } from '../../Services/api';
 import { Data } from 'plotly.js';
 
 interface PieChartComponentProps {
   machineId: string[];
   plantId: string;
-  startTime: Date|null;
-  endTime: Date|null;
-  realTime: boolean
+  startTime: Date | null;
+  endTime: Date | null;
+  realTime: boolean;
 }
 
 const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantId, startTime, endTime, realTime }) => {
@@ -21,26 +21,22 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
       try {
         setLoading(true);
         const kpiData = await Promise.all(
-          machineId.map(id => 
-            realTime 
-              ? fetchMachineKpis(id, plantId) 
+          machineId.map(id =>
+            realTime
+              ? fetchMachineKpis(id, plantId)
               : fetchKpiNotRealTime(id, plantId, startTime, endTime)
-            )
+          )
         );
-
-        console.log("Fetched KPI Data:", kpiData); // Log the fetched data
 
         const aggregatedData = kpiData.flat().map((kpi, index) => {
           const uptime = kpi?.uptime || 0;
           const downtime = kpi?.downtime || 0;
           return {
-            machine: machineId[index],
-            uptime: Number((uptime / 60).toFixed(2)), // Convert minutes to hours
-            downtime: Number((downtime / 60).toFixed(2)), // Convert minutes to hours
+            machine: `Machine ${index + 1}`,
+            uptime: Number((uptime / 60).toFixed(2)),
+            downtime: Number((downtime / 60).toFixed(2)),
           };
         });
-
-        console.log("Aggregated Data:", aggregatedData); // Log the aggregated data
 
         setData(aggregatedData);
       } catch (error) {
@@ -51,28 +47,37 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
     };
 
     fetchKpis();
-  }, [machineId, plantId, realTime]);
+  }, [machineId, plantId, realTime, startTime, endTime]);
 
-  const uptimeValues = data.map(machineData => machineData.uptime);
-  const downtimeValues = data.map(machineData => machineData.downtime);
-  const labels = data.flatMap(machineData => [
-    `Uptime (${machineData.machine})`,
-    `Downtime (${machineData.machine})`
-  ]);
-  const values = data.flatMap(machineData => [machineData.uptime, machineData.downtime]);
+  // Sort data by machine label
+  const sortedData = data.sort((a, b) => a.machine.localeCompare(b.machine));
 
-  const trace: Data = {
-    labels: labels,
-    values: values,
-    type: 'pie',
-    hoverinfo: 'label+percent+name',
-    textinfo: 'label+percent',
-    marker: {
-      colors: labels.map(label => label.includes('Uptime') ? '#4CAF50' : '#FF6347')
+  const traces: Data[] = sortedData.flatMap(machineData => [
+    {
+      labels: [`Uptime (${machineData.machine})`, `Downtime (${machineData.machine})`],
+      values: [machineData.uptime, machineData.downtime],
+      type: 'pie',
+      name: machineData.machine, // This will show "Machine 1", "Machine 2", etc. in the legend
+      hoverinfo: 'label+percent+name',
+      textinfo: 'label+percent',
+      hovertemplate: '%{label}<br>%{value} hours<br>%{percent}',
+      marker: {
+        colors: ['#4CAF50', '#FF6347']
+      },
+      legendgroup: machineData.machine,
+      showlegend: true,
+      textposition: 'inside',
+      textfont: {
+        size: 12,
+        color: 'white',
+        family: 'Arial, sans-serif'
+      },
+      domain: {
+        x: [0, 1],
+        y: [0, 1]
+      }
     }
-  };
-
-  console.log("Trace:", trace); // Log the trace
+  ]);
 
   return (
     <Paper elevation={3} sx={{ padding: 2, marginBottom: 1 }}>
@@ -82,13 +87,17 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
         </Box>
       ) : (
         <Plot
-          data={[trace]}
+          data={traces}
           layout={{
             title: 'Uptime vs Downtime',
             showlegend: true,
-            legend: { title: { text: 'Machines' } },
+            legend: {
+              title: { text: 'Machines' },
+              itemsizing: 'constant',
+              traceorder: 'normal',
+            },
             height: 330,
-            margin: { l: 20, r: 20, t: 40, b: 20 }, // Adjust margins to cover most of the card area
+            margin: { l: 20, r: 20, t: 40, b: 20 },
           }}
           useResizeHandler
           style={{ width: '100%', height: '100%' }}

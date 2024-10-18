@@ -85,7 +85,6 @@ async def get_historical_data(machineId: int, plantId: int, timeframe: str = Que
 @app.get("/historical-data-start-end")
 async def get_historical_machine_data(machineId: int, plantId: int,startTime:datetime, endTime: datetime,  timeframe: str = Query("5m"),current_user: models.User = Depends(auth.get_current_active_user)):
     try:
-        print(machineId,plantId,startTime,endTime)
         data = await d1.get_historical_machine_data(machineId, plantId, startTime=startTime, endTime=endTime)
         return data
     except Exception as e:
@@ -109,11 +108,6 @@ async def get_machine_and_plant_count(current_user: dict = Depends(auth.get_curr
         return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-# @app.get("/api/notifications")
-# def get_notifications(db: Session = Depends(database.get_db),current_user: models.User = Depends(auth.get_current_active_user)):
-#     notifications = db.query(models.Notification).order_by(desc(models.Notification.timestamp)).limit(100).all()
-#     return notifications
 
 
 @app.get("/api/notifications")
