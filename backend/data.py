@@ -6,14 +6,17 @@ import logging
 from sqlalchemy.orm import Session
 from models import LastFetchedTimestamp
 from database import get_db
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 # InfluxDB settings
-INFLUXDB_HOST = "localhost"
+INFLUXDB_HOST = os.getenv("INFLUXDB_HOST")
 INFLUXDB_PORT = 8086
 INFLUXDB_DATABASE = "iot_machine_data"
 FILTERED_DATABASE = "filtered_iot_machine_data"
@@ -320,7 +323,7 @@ async def send_data_to_client(websocket: WebSocket, machine_id: int, plant_id: i
         await websocket.close()
     
     last_timestamp = int(datetime.utcnow().timestamp() * 1_000_000_000)  # Variable to track the last timestamp
-    print(last_timestamp)
+    # print(last_timestamp)
 
     prev_data = None
 
@@ -356,10 +359,8 @@ async def send_data_to_client(websocket: WebSocket, machine_id: int, plant_id: i
                 if new_data:
                     if prev_data is None or prev_data[-1]['time'] != new_data[-1]['time']:
                         await websocket.send_json(new_data)
-                        prev_data = new_data.copy()  # Update previous data after sending
-
-            # Wait for a short period before the next query
-            await asyncio.sleep(3)  # Adjust the frequency of updates as needed
+                        prev_data = new_data.copy()  
+            await asyncio.sleep(3)
 
         except Exception as e:
             logger.error(f"An error occurred while querying InfluxDB in WebSocket real-time data: {e}")

@@ -5,14 +5,17 @@ from database import get_db
 from models import KPI, Notification
 import logging
 from mongodb_logger import log_to_mongodb
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 # InfluxDB settings
-INFLUXDB_HOST = "localhost"
+INFLUXDB_HOST = os.getenv("INFLUXDB_HOST")
 INFLUXDB_PORT = 8086
 INFLUXDB_DATABASE = "iot_machine_data"
 

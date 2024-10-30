@@ -43,9 +43,9 @@ services:
       context: .
       dockerfile: Dockerfile.mqtttoinfluxdb
     depends_on:
-      - data_generator
       - mqtt
       - influxdb
+      - data_generator
     env_file:
       - .env
     networks:
@@ -58,9 +58,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - mqtt
       - influxdb
-      - mqtttoinfluxdb
     env_file:
       - .env
     networks:

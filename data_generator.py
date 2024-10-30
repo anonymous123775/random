@@ -7,12 +7,13 @@ import config
 import threading
 import os
 import dotenv
+import queue
 
 dotenv.load_dotenv()
 
 stop_flag = threading.Event()
 
-broker = 'localhost'
+broker = os.getenv('MQTT_BROKER')
 port = 1883
 
 def on_connect(client, userdata, flags, rc):
@@ -25,6 +26,7 @@ print(os.getenv('MQTT_USERNAME') , os.getenv('MQTT_PASSWORD'))
 print(broker, port)
 client.connect(broker, port, 60)
 
+data_queue = queue.Queue()
 
 # Configuration
 NUM_PLANTS = config.NUM_PLANTS
@@ -92,7 +94,6 @@ def gradually_back_to_normal(param_name, current_value):
         return current_value - random.uniform(drift_min, drift_max)  
     return current_value 
 
-data_buffer = []
 
 def update_machine_state(plant_id, machine_id):
     current_state = machine_states[(plant_id, machine_id)]
@@ -129,6 +130,7 @@ def update_machine_state(plant_id, machine_id):
             current_values[(plant_id, machine_id)]["vibration"] = random.uniform(*NORMAL_RANGE["vibration"])
     
     return machine_states[(plant_id, machine_id)]
+
 
 def generate_data(plant_id, machine_id):
     
@@ -214,18 +216,18 @@ def generate_data(plant_id, machine_id):
                 "machine_status": "offline" if state == 'offline' else 'online'
             }
             
-            data_buffer.append(data)
-    
-            
-            if len(data_buffer) >= 5:  
-                for buffered_data in data_buffer:
-                    topic = f"iot/plant{buffered_data['plant_id']}/machine{buffered_data['machine_id']}"
-                    client.publish(topic, json.dumps(buffered_data))
-                data_buffer.clear()
+            data_queue.put(data)
             time.sleep(NORMAL_INTERVAL)
         
     except Exception:
         print("Exception in generating data : ", Exception)
+        
+def process_queue():
+    while not stop_flag.is_set():
+        if not data_queue.empty():
+            data = data_queue.get()  # This removes the item from the queue
+            topic = f"iot/plant{data['plant_id']}/machine{data['machine_id']}"
+            client.publish(topic, json.dumps(data))
 
 threads = []
 
@@ -238,6 +240,11 @@ try :
 except Exception:
     print("Exception while generating threads : ", Exception)
 
+try:
+    queue_thread = threading.Thread(target=process_queue)
+    queue_thread.start()
+except Exception:
+    print("Exception in creating queue thread to push data")
 
 try:
     while True:
@@ -247,4 +254,5 @@ except KeyboardInterrupt:
     stop_flag.set()
     for thread in threads:
         thread.join()
+    queue_thread.join()
     client.disconnect()

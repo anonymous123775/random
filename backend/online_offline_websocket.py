@@ -5,10 +5,13 @@ from fastapi import WebSocket, HTTPException, WebSocketDisconnect
 from datetime import datetime, timedelta
 import logging
 import asyncio
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
 # InfluxDB settings
-INFLUXDB_HOST = "localhost"
+INFLUXDB_HOST = os.getenv("INFLUXDB_HOST")
 INFLUXDB_PORT = 8086
 INFLUXDB_DATABASE = "iot_machine_data"
 

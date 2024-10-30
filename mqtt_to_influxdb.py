@@ -5,17 +5,16 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import os
 import dotenv
-import config
 
 dotenv.load_dotenv()
 
 
-MQTT_BROKER = config.BROKER
-MQTT_PORT = config.PORT
+MQTT_BROKER = os.getenv('MQTT_BROKER')
+MQTT_PORT = 1883
 MQTT_TOPIC = "iot/#" 
 
 # InfluxDB settings
-INFLUXDB_HOST = config.BROKER
+INFLUXDB_HOST = os.getenv('INFLUXDB_HOST')
 INFLUXDB_PORT = 8086
 INFLUXDB_DATABASE = os.getenv('INFLUXDB_NAME')
 

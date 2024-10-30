@@ -52,7 +52,7 @@ async def get_email_list():
     # return ['piyushbonde006@gwsmail.com']
 
 # InfluxDB settings
-INFLUXDB_HOST = "localhost"
+INFLUXDB_HOST = os.getenv("INFLUXDB_HOST")
 INFLUXDB_PORT = 8086
 INFLUXDB_DATABASE = "iot_machine_data"
 
