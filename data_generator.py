@@ -5,53 +5,59 @@ import json
 from datetime import datetime
 import config
 import threading
+import os
+import dotenv
+
+dotenv.load_dotenv()
 
 stop_flag = threading.Event()
 
-# MQTT settings
-broker = config.BROKER
-port = config.PORT
+broker = 'localhost'
+port = 1883
 
+def on_connect(client, userdata, flags, rc):
+    print(f"Connected with result code {rc}")
 
-# MQTT client setup
 client = mqtt.Client()
+client.on_connect = on_connect
+client.username_pw_set(username=os.getenv('MQTT_USERNAME'),password=os.getenv('MQTT_PASSWORD'))
+print(os.getenv('MQTT_USERNAME') , os.getenv('MQTT_PASSWORD'))
+print(broker, port)
 client.connect(broker, port, 60)
 
 
 # Configuration
 NUM_PLANTS = config.NUM_PLANTS
 NUM_MACHINES_PER_PLANT = config.NUM_MACHINES_PER_PLANT
-FAULT_PROBABILITY = config.FAULT_PROBABILITY  # 6% chance for a machine to become faulty
-OFFLINE_PROBABILITY = config.OFFLINE_PROBABILITY  # 5% chance for a machine to go offline
-NORMAL_INTERVAL = config.NORMAL_INTERVAL  # Time interval for stable devices (in seconds)
+FAULT_PROBABILITY = config.FAULT_PROBABILITY  
+OFFLINE_PROBABILITY = config.OFFLINE_PROBABILITY 
+NORMAL_INTERVAL = config.NORMAL_INTERVAL 
 BACK_TO_NORMAL_FROM_OFFLINE = config.BACK_TO_NORMAL_FROM_OFFLINE
 BACK_TO_NORMAL_FROM_FAULTY = config.BACK_TO_NORMAL_FROM_FAULTY
+DEBOUNCE_TIME = config.DEBOUNCE_TIME
 
-# centralized normal range for all parameters
 NORMAL_RANGE = config.NORMAL_RANGE
 
-# faulty ranges for all parameters (outside the normal bounds)
 FAULTY_RANGE = config.FAULTY_RANGE
 
 NORMAL_DRIFT_RANGE = config.NORMAL_DRIFT_RANGE
 
-# drift ranges for going out of bound and coming back to normal
 DRIFT_RANGE = config.DRIFT_RANGE
 
-# current values and faulty direction (up/down) for each machine
 current_values = {
     (plant_id, machine_id): {
         "temperature": random.uniform(*NORMAL_RANGE["temperature"]),
         "humidity": random.uniform(*NORMAL_RANGE["humidity"]),
         "power_supply": random.uniform(*NORMAL_RANGE["power_supply"]),
         "vibration": random.uniform(*NORMAL_RANGE["vibration"]),
-        "fault_direction": None,  # Will be set to 'up' or 'down' when machine becomes faulty
-        "transitioning": False,  # Track whether a machine is transitioning back to normal
-        "faulty_parameters": []  # List of parameters that will go out of bound when faulty
+        "fault_direction": None, 
+        "transitioning": False, 
+        "faulty_parameters": [],
+        "last_state_change": datetime.now(),  
+        "last_state": "normal"
     } for plant_id in range(1, NUM_PLANTS+1) for machine_id in range(1, NUM_MACHINES_PER_PLANT+1)
 }
 
-# Machine states: normal, faulty, offline
 machine_states = {
     (plant_id, machine_id): "normal" for plant_id in range(1, NUM_PLANTS+1) for machine_id in range(1, NUM_MACHINES_PER_PLANT+1)
 }
@@ -60,7 +66,7 @@ def fluctuate_in_normal_range(param_name, current_value):
     """Keep values fluctuating minimally within the central normal range."""
     min_val, max_val = NORMAL_RANGE[param_name]
     drift_min, drift_max = NORMAL_DRIFT_RANGE[param_name]
-    fluctuation = random.uniform(drift_min, drift_max)  # fluctuation for stable machines
+    fluctuation = random.uniform(drift_min, drift_max) 
     new_value = current_value + fluctuation
     return max(min_val, min(new_value, max_val))
 
@@ -68,49 +74,53 @@ def gradually_out_of_bound(param_name, current_value, direction):
     """Slowly push values out of bounds for faulty machines."""
     min_faulty, max_faulty = FAULTY_RANGE[param_name]
     drift_min, drift_max = DRIFT_RANGE[param_name]
-    drift = random.uniform(drift_min, drift_max) # Gradual drift rate
+    drift = random.uniform(drift_min, drift_max) 
     if direction == 'up':
         new_value = current_value + drift
-        return min(new_value, max_faulty)  # Ensure it doesn't exceed max faulty range
-    else:  # direction == 'down'
+        return min(new_value, max_faulty) 
+    else:  
         new_value = current_value - drift
-        return max(new_value, min_faulty)  # Ensure it doesn't go below min faulty range
+        return max(new_value, min_faulty) 
 
 def gradually_back_to_normal(param_name, current_value):
     """Slowly bring values back into the normal range."""
     min_val, max_val = NORMAL_RANGE[param_name]
     drift_min, drift_max = DRIFT_RANGE[param_name]
     if current_value < min_val:
-        return current_value + random.uniform(drift_min, drift_max)  # Gradually increase to normal
+        return current_value + random.uniform(drift_min, drift_max) 
     elif current_value > max_val:
-        return current_value - random.uniform(drift_min, drift_max)  # Gradually decrease to normal
-    return current_value  # Already within normal range
+        return current_value - random.uniform(drift_min, drift_max)  
+    return current_value 
+
+data_buffer = []
 
 def update_machine_state(plant_id, machine_id):
     current_state = machine_states[(plant_id, machine_id)]
     current_values_entry = current_values[(plant_id, machine_id)]
+    last_state_change = current_values_entry["last_state_change"]
+    current_time = datetime.now()
     
-    # Machines have a low chance to go faulty or offline if they're currently normal
     if current_state == "normal":
-        if random.random() <= FAULT_PROBABILITY:
-            machine_states[(plant_id, machine_id)] = "faulty"
-            # Randomly choose the fault direction when a machine becomes faulty
-            current_values_entry["fault_direction"] = random.choice(['up', 'down'])
-            # choose some parameters 
-            num_faulty_params = random.randint(1, len(NORMAL_RANGE))
-            current_values_entry["faulty_parameters"] = random.sample(list(NORMAL_RANGE.keys()), num_faulty_params)
-        elif random.random() <= OFFLINE_PROBABILITY:
-            machine_states[(plant_id, machine_id)] = "offline"
-    
-    # faulty can eventually go back to normal
+        if (current_time - last_state_change).total_seconds() >= DEBOUNCE_TIME:
+            if random.random() <= FAULT_PROBABILITY:
+                machine_states[(plant_id, machine_id)] = "faulty"
+                current_values_entry["last_state_change"] = current_time
+                current_values_entry["last_state"] = current_state
+                current_values_entry["fault_direction"] = random.choice(['up', 'down'])
+                num_faulty_params = random.randint(1, len(NORMAL_RANGE))
+                current_values_entry["faulty_parameters"] = random.sample(list(NORMAL_RANGE.keys()), num_faulty_params)
+            elif random.random() <= OFFLINE_PROBABILITY:
+                machine_states[(plant_id, machine_id)] = "offline"
+                current_values_entry["last_state_change"] = current_time
+                current_values_entry["last_state"] = current_state
+        
     elif current_state == "faulty":
-        if random.random() <= BACK_TO_NORMAL_FROM_FAULTY:  # Chance to recover
+        if random.random() <= BACK_TO_NORMAL_FROM_FAULTY: 
             machine_states[(plant_id, machine_id)] = "normal"
-            current_values_entry["transitioning"] = True  # transition flag to True
+            current_values_entry["transitioning"] = True 
     
-    # offline have a chance to come back online
     elif current_state == "offline":
-        if random.random() < BACK_TO_NORMAL_FROM_OFFLINE:  # Chance to come back online
+        if random.random() < BACK_TO_NORMAL_FROM_OFFLINE:  
             machine_states[(plant_id, machine_id)] = "normal"
             
             current_values[(plant_id, machine_id)]["temperature"] = random.uniform(*NORMAL_RANGE["temperature"])
@@ -136,7 +146,7 @@ def generate_data(plant_id, machine_id):
             if state == "normal":
                 if transitioning:
                     temperature, humidity, vibration, power_supply = 0, 0, 0, 0
-                    # Gradually bring the parameters back to the normal range if they were faulty
+
                     if NORMAL_RANGE["temperature"][0] <= current_temp <= NORMAL_RANGE["temperature"][1]:
                         temperature = fluctuate_in_normal_range("temperature", current_temp)
                     else:
@@ -154,20 +164,17 @@ def generate_data(plant_id, machine_id):
                     else:
                         vibration = gradually_back_to_normal("vibration", current_vibration)
                     
-                    # Check if all parameters are back in the normal range, if so, stop transitioning
                     if (NORMAL_RANGE["temperature"][0] <= temperature <= NORMAL_RANGE["temperature"][1] and
                         NORMAL_RANGE["humidity"][0] <= humidity <= NORMAL_RANGE["humidity"][1] and
                         NORMAL_RANGE["power_supply"][0] <= power_supply <= NORMAL_RANGE["power_supply"][1] and
                         NORMAL_RANGE["vibration"][0] <= vibration <= NORMAL_RANGE["vibration"][1]):
-                        current_values[(plant_id, machine_id)]["transitioning"] = False  #
+                        current_values[(plant_id, machine_id)]["transitioning"] = False  
                 else:
-                    # Stable machines fluctuate normally within the range
                     temperature = fluctuate_in_normal_range("temperature", current_temp)
                     humidity = fluctuate_in_normal_range("humidity", current_humidity)
                     power_supply = fluctuate_in_normal_range("power_supply", current_power)
                     vibration = fluctuate_in_normal_range("vibration", current_vibration)
             elif state == "faulty":
-                # Trend out of bounds in the chosen direction for faulty parameters
                 temperature = current_temp
                 humidity = current_humidity
                 power_supply = current_power
@@ -189,10 +196,8 @@ def generate_data(plant_id, machine_id):
                 else:
                     vibration = fluctuate_in_normal_range("vibration", current_vibration)
             else:
-                # If offline, all parameters are None
                 temperature, humidity, power_supply, vibration = 0,0,0,0
             
-            # Update current values for trending
             current_values[(plant_id, machine_id)]["temperature"] = temperature
             current_values[(plant_id, machine_id)]["humidity"] = humidity
             current_values[(plant_id, machine_id)]["power_supply"] = power_supply
@@ -208,13 +213,16 @@ def generate_data(plant_id, machine_id):
                 "vibration": vibration,
                 "machine_status": "offline" if state == 'offline' else 'online'
             }
-        
-            plant_id = data["plant_id"]
-            machine_id = data["machine_id"]
-            topic = f"iot/plant{plant_id}/machine{machine_id}"  # Dynamic topic based on plant and machine ID
-            client.publish(topic, json.dumps(data))  # Publish data in JSON format
-            # print(f"Published to {topic}: {data}")
-            time.sleep(NORMAL_INTERVAL)  # Interval for generating data
+            
+            data_buffer.append(data)
+    
+            
+            if len(data_buffer) >= 5:  
+                for buffered_data in data_buffer:
+                    topic = f"iot/plant{buffered_data['plant_id']}/machine{buffered_data['machine_id']}"
+                    client.publish(topic, json.dumps(buffered_data))
+                data_buffer.clear()
+            time.sleep(NORMAL_INTERVAL)
         
     except Exception:
         print("Exception in generating data : ", Exception)

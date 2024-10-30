@@ -3,14 +3,14 @@ import { Container, Grid, Card, CardContent, Typography, Select, MenuItem, FormC
 import BarChartComponent from './Graph/BarChartComponent';
 import PieChartComponent from './Graph/PieChartComponent';
 import { getMachineCount, getPlantCount, fetchMachineKpis, fetchKpiNotRealTime} from '../Services/api';
-import WebSocketPieChartComponent from './MachineStatusDashboard';
-import BarChartFailureComponent from './Graph/BarChartFailureComponent';
 import { Tabs, Tab, Checkbox, ListItemText, TextField, FormControlLabel, Switch } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import GraphsComponent from './GraphComponent';
-import GraphsComponentNotRealtime from './GraphComponentNotRealtime';
+import GraphsComponentNotRealtimeMachine from './GraphComponentNotRealtimeMachine';
+import PlantViewComponent from './PlantViewComponent';
+import TableComponent from './TableComponent';
 
 interface KPIData {
   uptime?: number;
@@ -276,7 +276,8 @@ const Dashboard: React.FC = () => {
               </>
             ):(
               <>
-                <GraphsComponentNotRealtime selectedMachine={selectedMachine} selectedPlant={selectedPlant} startTime={startTime} endTime={endTime} />
+                <GraphsComponentNotRealtimeMachine selectedMachine={selectedMachine} selectedPlant={selectedPlant} startTime={startTime} endTime={endTime} />
+                <TableComponent selectedMachine={selectedMachine} selectedPlant={selectedPlant} startTime={startTime} endTime={endTime} />
               </>
             )
             }
@@ -286,15 +287,7 @@ const Dashboard: React.FC = () => {
           </Grid>
         )}
         {selectedTab === 1 && (
-          <Grid container spacing={3}>
-            {/* Plant View Components */}
-            <Grid item xs={12}>
-              <WebSocketPieChartComponent plantId={selectedPlant} />
-            </Grid>
-            <Grid item xs={12}>
-              <BarChartFailureComponent plantId={selectedPlant} />
-            </Grid>
-          </Grid>
+          <PlantViewComponent plantId={selectedPlant} />
         )}
       </Box>
     </Container>

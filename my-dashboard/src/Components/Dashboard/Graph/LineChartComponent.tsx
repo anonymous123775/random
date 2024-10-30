@@ -175,7 +175,8 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
       y: trace.y[lastIndex],
       text: `${trace.name} : ${trace.y[lastIndex] ? trace.y[lastIndex].toFixed(2) : ""}`,
       showarrow: true,
-      arrowhead: 7,
+      arrowhead: 1,
+      opacity:0.5,
       ax: -40,
       ay: -30 - (index* 20), 
       align: "center"    

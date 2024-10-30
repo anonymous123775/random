@@ -27,7 +27,7 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineIds, plant
     const fetchData = async () => {
       setLoading(true);
       try {
-        console.log("Bar Chart Data fetched")
+        // console.log("Bar Chart Data fetched")
         const allData = await Promise.all(
           machineIds.map(id => fetchNumFailures(selectedMonth, selectedYear, id, plantId))
         );
@@ -59,11 +59,12 @@ const BarChartComponent: React.FC<BarChartComponentProps> = ({ machineIds, plant
     fetchData();
   }, [selectedMonth, selectedYear, machineIds, plantId]);
 
+  // console.log("machine ids i barchart : ",machineIds)
   const traces: Data[] = machineIds.map((id, index) => ({
     x: data.map(item => item.day),
     y: data.map(item => item[`failures_${index}`] || 0),
     type: 'bar',
-    name: `Machine ${index + 1}`,
+    name: `Machine ${id}`,
     hoverinfo: 'x+y',
     hovertemplate: `Machine ${index + 1}<br>Day: %{x}<br>Failures: %{y}<extra></extra>`,
   }));

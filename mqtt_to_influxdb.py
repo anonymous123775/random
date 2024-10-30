@@ -2,18 +2,22 @@ import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
 import json
 from datetime import datetime
-import threading
 from concurrent.futures import ThreadPoolExecutor
+import os
+import dotenv
+import config
 
-# MQTT settings
-MQTT_BROKER = "localhost"
-MQTT_PORT = 1883
-MQTT_TOPIC = "iot/#"  # Subscribe to all topics under 'iot/'
+dotenv.load_dotenv()
+
+
+MQTT_BROKER = config.BROKER
+MQTT_PORT = config.PORT
+MQTT_TOPIC = "iot/#" 
 
 # InfluxDB settings
-INFLUXDB_HOST = "localhost"
+INFLUXDB_HOST = config.BROKER
 INFLUXDB_PORT = 8086
-INFLUXDB_DATABASE = "iot_machine_data"
+INFLUXDB_DATABASE = os.getenv('INFLUXDB_NAME')
 
 # Initialize InfluxDB client for InfluxDB 1.8
 influxdb_client = InfluxDBClient(host=INFLUXDB_HOST, port=INFLUXDB_PORT)
@@ -41,7 +45,7 @@ def process_message(msg):
         data["vibration"] = float(data["vibration"])
         machine_status = 1 if data["machine_status"].lower() == "online" else 0
         # print(machine_status)
-        # Prepare the data for InfluxDB
+        
         influx_data = [
             {
                 "measurement": "machine_data",
@@ -68,6 +72,7 @@ def process_message(msg):
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
+mqtt_client.username_pw_set(username=os.getenv('MQTT_USERNAME'),password=os.getenv('MQTT_PASSWORD'))
 
 try:
     # Connect to MQTT broker

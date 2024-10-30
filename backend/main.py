@@ -16,6 +16,7 @@ import asyncio
 from kpi import calculate_kpis, get_num_failures_month, fetch_machine_kpis, get_num_failures_per_machine, fetch_machine_kpis_not_realtime
 from online_offline_websocket import machine_status_websocket
 from datetime import datetime
+from data import create_filtered_database, continuous_filter_and_store
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -34,14 +35,19 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # Startup event to run KPI calculation
 @app.on_event("startup")
 async def startup_event():
+    create_filtered_database()
     asyncio.create_task(kpi_scheduler())
-    # pass
+    # asyncio.create_task(points_scheduler())
     
 async def kpi_scheduler():
     while True:
         await calculate_kpis()
         await asyncio.sleep(900)  # Sleep for 15 minutes
         
+async def points_scheduler():
+    while True:
+        await continuous_filter_and_store()
+        await asyncio.sleep(60)  # Sleep for 15 minutes        
         
 @app.put("/api/user/{user_id}", response_model=schemas.User)
 async def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_active_user)):
@@ -86,6 +92,15 @@ async def get_historical_data(machineId: int, plantId: int, timeframe: str = Que
 async def get_historical_machine_data(machineId: int, plantId: int,startTime:datetime, endTime: datetime,  timeframe: str = Query("5m"),current_user: models.User = Depends(auth.get_current_active_user)):
     try:
         data = await d1.get_historical_machine_data(machineId, plantId, startTime=startTime, endTime=endTime)
+        return data
+    except Exception as e:
+        print(f"An error occurred while fetching historical data: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching historical data")
+    
+@app.get("/historical-data-start-end-param")
+async def get_historical_machine_data_param(machineId: int, plantId: int,startTime:datetime, endTime: datetime, param: str, timeframe: str = Query("5m"),current_user: models.User = Depends(auth.get_current_active_user)):
+    try:
+        data = await d1.get_historical_machine_data_param(machineId, plantId, startTime=startTime, endTime=endTime, param= param)
         return data
     except Exception as e:
         print(f"An error occurred while fetching historical data: {e}")

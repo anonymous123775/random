@@ -1,18 +1,17 @@
-
 # MQTT settings
-BROKER = "localhost"
+BROKER = 'localhost'
 PORT = 1883
 
 # Configuration
 NUM_PLANTS = 1
 NUM_MACHINES_PER_PLANT = 5
-FAULT_PROBABILITY = 0.01  # 1% chance for a machine to become faulty
-OFFLINE_PROBABILITY = 0.01  # 1% chance for a machine to go offline
-NORMAL_INTERVAL = 1  # Time interval for stable devices (in seconds)
+FAULT_PROBABILITY = 0.01 
+OFFLINE_PROBABILITY = 0.01 
+NORMAL_INTERVAL = 0.2  
 BACK_TO_NORMAL_FROM_OFFLINE = 0.05
 BACK_TO_NORMAL_FROM_FAULTY = 0.02
+DEBOUNCE_TIME = 600
 
-# Centralized normal range for all parameters
 NORMAL_RANGE = {
     "temperature": (40, 60),
     "humidity": (40, 50),
@@ -20,7 +19,6 @@ NORMAL_RANGE = {
     "vibration": (0.2, 0.4)
 }
 
-# Faulty ranges for all parameters (outside the normal bounds)
 FAULTY_RANGE = {
     "temperature": (20, 100),
     "humidity": (20, 80),
@@ -29,16 +27,15 @@ FAULTY_RANGE = {
 }
 
 NORMAL_DRIFT_RANGE = {
-    "temperature": (-1, 1),
-    "humidity": (-1, 1),
-    "power_supply": (-1, 1),
-    "vibration": (-0.07, 0.07)
+    "temperature": (-0.2, 0.2),
+    "humidity": (-0.2, 0.2),
+    "power_supply": (-0.2, 0.2),
+    "vibration": (-0.015, 0.015)
 }
 
-# Drift ranges for going out of bound and coming back to normal
 DRIFT_RANGE = {
-    "temperature": (1, 5),
-    "humidity": (1, 5),
-    "power_supply": (1, 5),
-    "vibration": (0.07, 0.12)
+    "temperature": (0.2, 1),
+    "humidity": (1, 0.2),
+    "power_supply": (0.2, 1),
+    "vibration": (0.015, 0.025)
 }

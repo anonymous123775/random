@@ -66,6 +66,17 @@ export const fetchHistoricalMachineData = async (machineId: string, plantId: str
     return response.data;
 };
 
+export const fetchHistoricalMachineDataParam = async (machineId: string, plantId: string, param: string ,startTime: Date|null, endTime: Date|null) => {
+    // console.log(machineId,plantId,startTime,endTime)
+    const response = await axios.get(`${API_URL}/historical-data-start-end-param`, {
+        headers: {
+            ...getAuthHeaders().headers,
+        },
+        params: { machineId, plantId, startTime, endTime, param },
+    });
+    return response.data;
+};
+
 
 export interface Notification {
     id: number;
@@ -81,7 +92,7 @@ export interface Notification {
 // Fetch notifications with type safety
 export const fetchNotificationsTyped = async (): Promise<Notification[]> => {
     const response = await axios.get(`${API_URL}/api/notifications`, getAuthHeaders());
-    console.log("fetched notifications : ",response.data)
+    // console.log("fetched notifications : ",response.data)
     return response.data;
 };
 
@@ -116,11 +127,11 @@ export const fetchMachineKpis = async (machineId: string , plantId: string) => {
             headers: getAuthHeaders().headers,
             params: { machine_id : machineId, plant_id : plantId},
         });
-        console.log("Machine KPI : ",response.data)
+        // console.log("Machine KPI : ",response.data)
         return response.data
     }
     catch(error){
-        console.log('Failed to fetch Machine Kpis : ', error);
+        // console.log('Failed to fetch Machine Kpis : ', error);
         throw error;
     }
 }
@@ -131,11 +142,11 @@ export const fetchKpiNotRealTime = async (machineId: string , plantId: string, s
             headers: getAuthHeaders().headers,
             params: { machine_id : machineId, plant_id : plantId, startTime: startTime, endTime: endTime},
         });
-        console.log("Machine KPI Not real time : ",response.data)
+        // console.log("Machine KPI Not real time : ",response.data)
         return response.data
     }
     catch(error){
-        console.log('Failed to fetch Machine Kpis : ', error);
+        // console.log('Failed to fetch Machine Kpis : ', error);
         throw error;
     }
 }
@@ -147,11 +158,11 @@ export const fetchMachineFailuresPlant = async (plantId: string) => {
             headers: getAuthHeaders().headers,
             params: { plant_id : plantId},
         });
-        console.log("Machine KPI : ",response.data)
+        // console.log("Machine KPI : ",response.data)
         return response.data
     }
     catch(error){
-        console.log('Failed to fetch Machine Kpis : ', error);
+        // console.log('Failed to fetch Machine Kpis : ', error);
         throw error;
     }
 }

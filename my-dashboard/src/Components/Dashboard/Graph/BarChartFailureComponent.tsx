@@ -13,13 +13,11 @@ import { Box, Button, Typography, Container, Grid, Paper, CircularProgress } fro
 import { fetchMachineFailuresPlant, getPlantCount } from '../../Services/api';
 
 interface BarChartComponentProps {
-  plantId: string;
+  selectedPlant: string;
 }
 
-const BarChartFailureComponent: React.FC<BarChartComponentProps> = ({ plantId }) => {
+const BarChartFailureComponent: React.FC<BarChartComponentProps> = ({ selectedPlant }) => {
   const [data, setData] = useState<any[]>([]);
-  const [plants, setPlants] = useState<string[]>([]);
-  const [selectedPlant, setSelectedPlant] = useState<string>(plantId);
   const [animationKey, setAnimationKey] = useState<number>(0); // New state for triggering animation
   const [loading, setLoading] = useState<boolean>(true); // Loading state
 
@@ -27,17 +25,14 @@ const BarChartFailureComponent: React.FC<BarChartComponentProps> = ({ plantId })
     const fetchData = async () => {
       setLoading(true); // Start loading
       try {
-        const plantList = await getPlantCount();
-        setPlants(plantList.distinct_plant_count);
 
-        // Fetch data for the initially selected plant
+
         const newData = await fetchMachineFailuresPlant(selectedPlant);
         setData(newData);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
-        setLoading(false); // End loading
-        // Reset animation key to trigger animation
+        setLoading(false); 
         setAnimationKey(prevKey => prevKey + 1);
       }
     };
@@ -45,47 +40,13 @@ const BarChartFailureComponent: React.FC<BarChartComponentProps> = ({ plantId })
     fetchData();
   }, [selectedPlant]);
 
-  const handlePlantChange = async (plantId: string) => {
-    // Avoid fetching data if the same plant is selected
-    if (selectedPlant !== plantId) {
-      setSelectedPlant(plantId);
-      
-      // Fetch new data for the selected plant
-      setLoading(true); // Start loading
-      try {
-        const newData = await fetchMachineFailuresPlant(plantId);
-        setData(newData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false); // End loading
-        // Reset animation key to trigger animation
-        setAnimationKey(prevKey => prevKey + 1);
-      }
-    }
-  };
-
   return (
     <Container>
       <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h5" align="center" gutterBottom>
           Failures per Machine
         </Typography>
-        <Box display="flex" justifyContent="center" mb={2}>
-          {plants.map((plant, index) => (
-            <Button
-              key={index}
-              variant={selectedPlant === plant ? 'contained' : 'outlined'}
-              color="primary"
-              onClick={() => handlePlantChange(plant)}
-              sx={{ margin: 0.5 }}
-            >
-              Plant {index + 1}
-            </Button>
-          ))}
-        </Box>
 
-        {/* Conditional rendering based on loading state */}
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" height={400}>
             <CircularProgress />
@@ -94,7 +55,7 @@ const BarChartFailureComponent: React.FC<BarChartComponentProps> = ({ plantId })
           <ResponsiveContainer width="100%" height={400}>
             <BarChart
               data={data}
-              key={animationKey} // Use the animationKey to trigger re-render
+              key={animationKey} 
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />

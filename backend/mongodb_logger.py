@@ -3,6 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+from pytz import UTC
 
 load_dotenv()
 
@@ -30,7 +31,7 @@ async def log_to_mongodb(log_type: str, log_data: dict):
     log_entry = {
         "Username": "Piyush",
         "Logid": logid,
-        "Timestamp": datetime.utcnow().isoformat(),
+        "Timestamp": datetime.now(UTC).isoformat(),
         "Values": log_data
     }
     await collection.insert_one(log_entry)

@@ -83,7 +83,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         return updatedNotifications;
       });
 
-      console.log(notification);
+      // console.log(notification);
     };
 
     socket.onclose = (event) => {

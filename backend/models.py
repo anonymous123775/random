@@ -42,3 +42,11 @@ class KPI(Base):
                 f"num_alerts_triggered={self.num_alerts_triggered}, "
                 f"failure_rate={self.failure_rate}, "
                 f"last_processed_timestamp={self.last_processed_timestamp})>")
+        
+class LastFetchedTimestamp(Base):
+    __tablename__ = "last_fetched_timestamps"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    machine_id = Column(Integer, index=True)
+    plant_id = Column(Integer, index=True)
+    last_timestamp = Column(DateTime)

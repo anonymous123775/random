@@ -7,9 +7,13 @@ from sqlalchemy.orm import Session
 import schemas
 import crud
 import database
+import os
+import dotenv
 
-SECRET_KEY = "83daa0256a2289b0fb23693bf1f6034d44396675749244721a2b20e896e11662"
-ALGORITHM = "HS256"
+dotenv.load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = os.getenv('ALGORITHM')
 ACCESS_TOKEN_EXPIRE_MINUTES = 300
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")

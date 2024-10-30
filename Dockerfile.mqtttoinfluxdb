@@ -1,0 +1,5 @@
+FROM python:3.9-slim
+WORKDIR /app
+COPY mqtt_to_influxdb.py config.py .env /app/
+RUN pip install paho-mqtt==2.1.0 influxdb==5.3.2 python-dotenv==1.0.1
+CMD ["python", "mqtt_to_influxdb.py"]

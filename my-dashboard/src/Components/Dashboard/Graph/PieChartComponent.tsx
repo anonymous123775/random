@@ -27,12 +27,12 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
               : fetchKpiNotRealTime(id, plantId, startTime, endTime)
           )
         );
-
+        
         const aggregatedData = kpiData.flat().map((kpi, index) => {
           const uptime = kpi?.uptime || 0;
           const downtime = kpi?.downtime || 0;
           return {
-            machine: `Machine ${index + 1}`,
+            machine: `Machine ${kpi?.machine_id}`,
             uptime: Number((uptime / 60).toFixed(2)),
             downtime: Number((downtime / 60).toFixed(2)),
           };
@@ -51,13 +51,14 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
 
   // Sort data by machine label
   const sortedData = data.sort((a, b) => a.machine.localeCompare(b.machine));
+  console.log(sortedData.flat());
 
   const traces: Data[] = sortedData.flatMap(machineData => [
     {
       labels: [`Uptime (${machineData.machine})`, `Downtime (${machineData.machine})`],
       values: [machineData.uptime, machineData.downtime],
       type: 'pie',
-      name: machineData.machine, // This will show "Machine 1", "Machine 2", etc. in the legend
+      name: machineData.machine,
       hoverinfo: 'label+percent+name',
       textinfo: 'label+percent',
       hovertemplate: '%{label}<br>%{value} hours<br>%{percent}',

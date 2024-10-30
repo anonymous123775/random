@@ -9,3 +9,6 @@ venv.bak/
 *.pyc
 *~
 *.swp
+mosquitto/
+influxdb/
+my-dashboard/package-lock.json

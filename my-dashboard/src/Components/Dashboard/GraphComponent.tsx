@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Grid, CircularProgress, Box } from '@mui/material';
 import LineChartComponent from './Graph/LineChartComponent'; // Adjust the import path as needed
 import moment from 'moment';
+import DataTableComponent from './Table/DataTableComponent';
 
 interface GraphsComponentProps {
   selectedMachine: string[];
@@ -51,6 +52,9 @@ const GraphsComponent: React.FC<GraphsComponentProps> = ({ selectedMachine, sele
         </Grid>
         <Grid item xs={12} md={6}>
             <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} realtimeData={realtimeData} />
+        </Grid>
+        <Grid item xs={12}>
+        <DataTableComponent selectedMachine={selectedMachine} realtimeData={realtimeData} />
         </Grid>
           
     </>

@@ -24,7 +24,6 @@ class User(UserBase):
     class Config:
         orm_mode = True
 
-# Additional schemas for other models
 
 class NotificationBase(BaseModel):
     machine_id: int

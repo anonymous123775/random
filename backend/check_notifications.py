@@ -22,7 +22,7 @@ def check_notifications():
         for notification in notifications:
             print(notification)
             
-        # cursor.execute("DELETE FROM users WHERE id <= 5")  # This will delete all notifications
+        # cursor.execute("DELETE FROM last_fetched_timestamps")  # This will delete all notifications
         # conn.commit()  # Commit the changes to the database
         # print("All notifications have been cleared.")
         
