@@ -2,21 +2,20 @@ import React, { useState } from "react";
 import "./Auth.css";
 import { loginUser, registerUser } from "../Services/api";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css"; // Import toastify styles
+import "react-toastify/dist/ReactToastify.css"; 
 
 interface AuthProps {
   onAuthSuccess: () => void;
 }
 
 const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
-  const [isLogin, setIsLogin] = useState(true); // Toggle between login and signup
+  const [isLogin, setIsLogin] = useState(true); 
   const [formData, setFormData] = useState({
     username: "",
     password: "",
     email: "",
     fullName: ""
   });
-  // const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,25 +25,19 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     e.preventDefault();
     try {
       if (isLogin) {
-        // Login API call
         const response = await loginUser(formData.username, formData.password);
         console.log("Login successful:", response);
-        // onLogin(); // Call the onLogin prop to update authentication state
         onAuthSuccess();
         toast.success("Login successful!");
       } else {
-        // Signup API call
         const response = await registerUser(formData);
         console.log("Signup successful:", response);
         toast.success("Signup successful!");
       }
     } catch (error: any) {
-      // Display the error response properly if available
       if (error.response) {
-        // setErrorMessage(`Error: ${error.response.data.detail || error.message}`);
         toast.error(`Error: ${error.response.data.detail || error.message}`);
       } else {
-        // setErrorMessage("An unknown error occurred.");
         toast.error("An unknown error occurred.");
       }
     }
@@ -93,13 +86,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           />
           <button type="submit">{isLogin ? "Login" : "Signup"}</button>
         </form>
-        {/* {errorMessage && <p className="error">{errorMessage}</p>} */}
         <button className="toggle-btn" onClick={() => setIsLogin(!isLogin)}>
           {isLogin ? "Don't have an account? Signup" : "Already have an account? Login"}
         </button>
       </div>
 
-      {/* Toast container */}
       <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop closeOnClick />
     </div>
   );

@@ -29,7 +29,7 @@ const DataTableComponent: React.FC<DataTableComponentProps> = ({ selectedMachine
     const updatedDataByMachine: { [key: string]: RealtimeData } = { ...dataByMachine };
 
     selectedMachine.forEach(machineId => {
-      const newData = realtimeData.find(item => item.machine_id === Number(machineId));
+      const newData = realtimeData.find(item => item && item.machine_id === Number(machineId));
       if (newData) {
         updatedDataByMachine[machineId] = newData;
       } else if (!updatedDataByMachine[machineId]) {
@@ -125,3 +125,4 @@ const DataTableComponent: React.FC<DataTableComponentProps> = ({ selectedMachine
 };
 
 export default DataTableComponent;
+

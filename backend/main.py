@@ -26,8 +26,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],  # Add your frontend URL here
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],  
+    allow_headers=["*"],  
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -36,8 +36,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 @app.on_event("startup")
 async def startup_event():
     create_filtered_database()
-    # asyncio.create_task(kpi_scheduler())
-    # asyncio.create_task(points_scheduler())
+    asyncio.create_task(kpi_scheduler())
+    asyncio.create_task(points_scheduler())
     
 async def kpi_scheduler():
     while True:

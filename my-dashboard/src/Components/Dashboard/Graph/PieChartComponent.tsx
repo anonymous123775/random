@@ -27,7 +27,7 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
               : fetchKpiNotRealTime(id, plantId, startTime, endTime)
           )
         );
-        
+
         const aggregatedData = kpiData.flat().map((kpi, index) => {
           const uptime = kpi?.uptime || 0;
           const downtime = kpi?.downtime || 0;
@@ -51,21 +51,24 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
 
   // Sort data by machine label
   const sortedData = data.sort((a, b) => a.machine.localeCompare(b.machine));
-  console.log(sortedData.flat());
 
-  const traces: Data[] = sortedData.flatMap(machineData => [
+  const traces: Data[] = [
     {
-      labels: [`Uptime (${machineData.machine})`, `Downtime (${machineData.machine})`],
-      values: [machineData.uptime, machineData.downtime],
+      labels: sortedData.flatMap(machineData => [
+        `Uptime (${machineData.machine})`,
+        `Downtime (${machineData.machine})`
+      ]),
+      values: sortedData.flatMap(machineData => [
+        machineData.uptime,
+        machineData.downtime
+      ]),
       type: 'pie',
-      name: machineData.machine,
       hoverinfo: 'label+percent+name',
       textinfo: 'label+percent',
       hovertemplate: '%{label}<br>%{value} hours<br>%{percent}',
       marker: {
-        colors: ['#4CAF50', '#FF6347']
+        colors: sortedData.flatMap(() => ['#4CAF50', '#FF6347'])
       },
-      legendgroup: machineData.machine,
       showlegend: true,
       textposition: 'inside',
       textfont: {
@@ -73,12 +76,8 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ machineId, plantI
         color: 'white',
         family: 'Arial, sans-serif'
       },
-      domain: {
-        x: [0, 1],
-        y: [0, 1]
-      }
     }
-  ]);
+  ];
 
   return (
     <Paper elevation={3} sx={{ padding: 2, marginBottom: 1 }}>

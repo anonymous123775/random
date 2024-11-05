@@ -143,18 +143,15 @@ async def calculate_kpi_values(data_results, machine_id, plant_id, start_time, e
     return uptime, downtime, num_alerts
 
 def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts , timestamp):
-    # Ensure timestamp is a datetime object
     if not isinstance(timestamp, datetime):
         timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
 
-    # Check if an entry already exists for this machine
     existing_entry = db.query(KPI).filter(
         KPI.plant_id == plant_id,
         KPI.machine_id == machine_id
     ).first()
 
     if existing_entry:
-        # Accumulate the new values with the previous values
         existing_entry.uptime += uptime
         existing_entry.downtime += downtime
         total_duration = existing_entry.uptime + existing_entry.downtime + uptime + downtime
@@ -162,10 +159,7 @@ def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts , times
         existing_entry.failure_rate = existing_entry.num_alerts_triggered / total_duration if total_duration > 0 else 0.0
         existing_entry.last_processed_timestamp = timestamp
         db.commit()
-        # print(f"Updated KPI data for plant_id: {plant_id}, machine_id: {machine_id}")
-        # print(f"Updated data: {existing_entry}")
     else:
-        # Create a new entry
         total_duration = uptime + downtime
         failure_rate = num_alerts / total_duration
         new_kpi = KPI(
@@ -179,26 +173,20 @@ def save_kpi_data(db, plant_id, machine_id, uptime, downtime, num_alerts , times
         )
         db.add(new_kpi)
         db.commit()
-        # print(f"Inserted new KPI data for plant_id: {plant_id}, machine_id: {machine_id}")
-        # print(f"Inserted data: {new_kpi}")
-
-    # print(f"KPI data saved for plant_id: {plant_id}, machine_id: {machine_id}")
 
 def get_num_failures_month(db: Session, month: int, year: int, machine_id: str, plant_id: str):
     start_date = datetime(year, month, 1)
-    end_date = (start_date + timedelta(days=32)).replace(day=1)  # First day of the next month
+    end_date = (start_date + timedelta(days=32)).replace(day=1) 
     
     alerts = db.query(Notification).filter(
         Notification.timestamp >= start_date,
         Notification.timestamp < end_date,
         Notification.machine_id == machine_id,
         Notification.plant_id == plant_id,
-        # Notification.severity.in_(["warning", "error"])  # Severity check
     ).all()
 
     
     
-    # Initialize alert counts for all days in the month
     alert_counts = {day: 0 for day in range(1, (end_date - start_date).days + 1)}
     
     for alert in alerts:
@@ -210,10 +198,9 @@ def get_num_failures_month(db: Session, month: int, year: int, machine_id: str, 
 def get_num_failures_per_machine(db: Session, plant_id: str):
     alerts = db.query(Notification).filter(
         Notification.plant_id == plant_id,
-        Notification.machine_id.isnot(None)  # Filter out alerts with machine_id as None
+        Notification.machine_id.isnot(None) 
     ).all()
     
-    # Initialize a dictionary to count failures per machine
     machine_failures = {}
     
     for alert in alerts:

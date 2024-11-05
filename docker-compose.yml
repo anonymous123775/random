@@ -35,6 +35,9 @@ services:
       - influxdb
     env_file:
       - .env
+    volumes:
+      - ./config.py:/app/config.py
+      - ./data_generator.py:/app/data_generator.py
     networks:
       - my_network
 
@@ -48,6 +51,9 @@ services:
       - data_generator
     env_file:
       - .env
+    volumes:
+      - ./config.py:/app/config.py
+      - ./mqtt_to_influxdb.py:/app/mqtt_to_influxdb.py
     networks:
       - my_network
 
@@ -61,6 +67,8 @@ services:
       - influxdb
     env_file:
       - .env
+    volumes:
+      - ./backend:/app
     networks:
       - my_network
 
@@ -72,6 +80,8 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    volumes:
+      - ./my-dashboard:/app
     networks:
       - my_network
 

@@ -11,7 +11,7 @@ interface Notification {
   status: string;
   threshold: string;
   timestamp: string;
-  severity: string; // Include severity
+  severity: string;
 }
 
 interface GroupedNotification {
@@ -21,17 +21,17 @@ interface GroupedNotification {
   messages: string[];
   parameters: { parameter: string; threshold: string }[];
   timestamp: string;
-  severity: string; // Include severity
+  severity: string; 
 }
 
 interface NotificationContextProps {
   notifications: GroupedNotification[];
-  setSeverityFilter: (severity: string) => void; // Add filter setter
+  setSeverityFilter: (severity: string) => void; 
 }
 
 export const NotificationContext = createContext<NotificationContextProps>({
   notifications: [],
-  setSeverityFilter: () => {}, // Default empty function
+  setSeverityFilter: () => {},
 });
 
 interface NotificationProviderProps {
@@ -41,16 +41,14 @@ interface NotificationProviderProps {
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [rawNotifications, setRawNotifications] = useState<Notification[]>([]);
   const [groupedNotifications, setGroupedNotifications] = useState<GroupedNotification[]>([]);
-  const [severityFilter, setSeverityFilter] = useState<string>(''); // Add state for severity filter
+  const [severityFilter, setSeverityFilter] = useState<string>(''); 
 
   useEffect(() => {
     const fetchNotifications = async () => {
       const data: Notification[] = await fetchNotificationsTyped();
-      // console.log(data);
       setRawNotifications(data);
       const grouped = groupNotificationsByPlantAndMachine(data);
       setGroupedNotifications(grouped);
-      // console.log(grouped);
     };
 
     fetchNotifications();
@@ -64,12 +62,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       const notification: Notification = data.notification;
-      // console.log("new notification received: ", notification);
 
-      // Ensure the fields are correctly accessed
       const { plant_id, machine_id, parameter, severity } = notification;
 
-      // Show toast notifications only for severity "error" and "info"
       if (severity === "error") {
         toast.error(`Machine Offline: Plant ID ${plant_id}, Machine ID ${machine_id} - ${parameter} is offline!`);
       } else if (severity === "info") {
@@ -82,8 +77,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         setGroupedNotifications(grouped);
         return updatedNotifications;
       });
-
-      // console.log(notification);
     };
 
     socket.onclose = (event) => {
@@ -114,11 +107,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       messages: group.messages,
       parameters: group.parameters,
       timestamp: group.timestamp,
-      severity: group.severity, // Include severity
+      severity: group.severity, 
     }));
   };
 
-  // Apply filter based on severity
   const filteredNotifications = severityFilter
     ? groupedNotifications.filter((n) => n.severity === severityFilter)
     : groupedNotifications;

@@ -26,29 +26,31 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
 
   // Fetch historical data based on the selected timeframe
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const allData = await Promise.all(machineId.map(id => fetchHistoricalData(id, plantId, timeframe)));
-        const combinedData = allData.flat().map((item: any) => ({
-          ...item,
-          time: moment(item.time).valueOf(), // Use timestamps for more reliable filtering
-        }));
-        const uniqueData = Array.from(new Map(combinedData.map(item => [item.time, item])).values());
-        // console.log('Fetched Data:', uniqueData); // Log fetched data
-        setData(uniqueData);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching historical data:', error);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const allData = await Promise.all(machineId.map(id => fetchHistoricalData(id, plantId, timeframe)));
+      const combinedData = allData.flat().map((item: any) => ({
+        ...item,
+        time: moment(item.time).valueOf(),
+      }));
+      const uniqueData = Array.from(new Map(combinedData.map(item => [item.time, item])).values());
+      console.log('Fetched Data:', uniqueData); 
+      setData(uniqueData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching historical data:', error);
+    }
+  };
 
-    fetchData();
-  }, [machineId, plantId, timeframe]);
+  fetchData();
+}, [machineId, plantId, timeframe]);
+
 
   useEffect(() => {
     setData((prevData) => {
         const combinedData = [...prevData, ...realtimeData];
+        console.log(realtimeData);
         const uniqueData = Array.from(new Map(combinedData.map(item => [item.time, item])).values());
         return uniqueData;
       });

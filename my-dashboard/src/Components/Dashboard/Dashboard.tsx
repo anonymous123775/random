@@ -139,14 +139,38 @@ const Dashboard: React.FC = () => {
       <Box mt={3}>
         <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
         <Box flexGrow={1} display="flex" justifyContent="center">
-          <Tabs value={selectedTab} onChange={handleTabChange}>
+          <Tabs value={selectedTab} onChange={handleTabChange}
+            sx={{
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#671376',
+              },
+              '& .MuiTab-root': {
+                '&.Mui-selected': {
+                  color: '#671376',
+                },
+              },
+            }}>
             <Tab label="Machine View" />
             <Tab label="Plant View" />
           </Tabs>
         </Box>
         {selectedTab === 0 && (
           <FormControlLabel
-            control={<Switch checked={realTime} onChange={handleRealTimeChange} />}
+            control={
+              <Switch checked={realTime} onChange={handleRealTimeChange} 
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': {
+                    color: '#671376',
+                    '&:hover': {
+                      backgroundColor: 'rgba(103, 19, 118, 0.08)',
+                    },
+                  },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    backgroundColor: '#671376',
+                  },
+                }}
+              />
+            }
             label="Real-time Data"
           />
         )}
@@ -228,6 +252,18 @@ const Dashboard: React.FC = () => {
               </>
             )}
 
+            {realTime ?(
+              <>
+                <GraphsComponent selectedMachine={selectedMachine} selectedPlant={selectedPlant}/>
+              </>
+            ):(
+              <>
+                <GraphsComponentNotRealtimeMachine selectedMachine={selectedMachine} selectedPlant={selectedPlant} startTime={startTime} endTime={endTime} />
+                <TableComponent selectedMachine={selectedMachine} selectedPlant={selectedPlant} startTime={startTime} endTime={endTime} />
+              </>
+            )
+            }
+
             {/* KPI Cards and Pie Chart */}
             <Grid item xs={12} md={4}>
               {loadingKpis ? (
@@ -270,17 +306,6 @@ const Dashboard: React.FC = () => {
             <Grid item xs={12} md={8}>
               <PieChartComponent machineId={selectedMachine} plantId={selectedPlant} startTime={startTime} endTime={endTime} realTime={realTime}/>
             </Grid>
-            {realTime ?(
-              <>
-                <GraphsComponent selectedMachine={selectedMachine} selectedPlant={selectedPlant}/>
-              </>
-            ):(
-              <>
-                <GraphsComponentNotRealtimeMachine selectedMachine={selectedMachine} selectedPlant={selectedPlant} startTime={startTime} endTime={endTime} />
-                <TableComponent selectedMachine={selectedMachine} selectedPlant={selectedPlant} startTime={startTime} endTime={endTime} />
-              </>
-            )
-            }
             <Grid item xs={12}>
               <BarChartComponent machineIds={selectedMachine} plantId={selectedPlant}  />
             </Grid>

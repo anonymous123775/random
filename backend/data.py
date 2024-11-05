@@ -360,7 +360,7 @@ async def send_data_to_client(websocket: WebSocket, machine_id: int, plant_id: i
                     if prev_data is None or prev_data[-1]['time'] != new_data[-1]['time']:
                         await websocket.send_json(new_data)
                         prev_data = new_data.copy()  
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
         except Exception as e:
             logger.error(f"An error occurred while querying InfluxDB in WebSocket real-time data: {e}")

@@ -61,13 +61,13 @@
 }
 
 .form-container input:focus {
-  border-color: #007bff;
+  border-color: #671376;
   outline: none;
 }
 
 .form-container button {
   padding: 10px;
-  background-color: #007bff;
+  background-color: #671376;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -77,14 +77,14 @@
 }
 
 .form-container button:hover {
-  background-color: #0056b3;
+  background-color: #ac62b9;
 }
 
 .toggle-btn {
   margin-top: 10px;
   background: none;
   border: none;
-  color: #007bff;
+  color: #671376;
   cursor: pointer;
   transition: color 0.3s, text-decoration 0.3s;
   font-size: 14px;

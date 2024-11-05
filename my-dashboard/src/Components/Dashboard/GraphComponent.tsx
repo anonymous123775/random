@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Grid, CircularProgress, Box } from '@mui/material';
+import { Grid } from '@mui/material';
 import LineChartComponent from './Graph/LineChartComponent'; // Adjust the import path as needed
 import moment from 'moment';
 import DataTableComponent from './Table/DataTableComponent';
@@ -10,7 +10,7 @@ interface GraphsComponentProps {
 }
 
 const GraphsComponent: React.FC<GraphsComponentProps> = ({ selectedMachine, selectedPlant }) => {
-  const [realtimeData, setRealtimeData] = useState<any[]>([]);
+  const [realtimeData, setRealtimeData] = useState<{ [key: string]: any }>({});
 
   useEffect(() => {
     const sockets = selectedMachine.map(id => {
@@ -18,13 +18,19 @@ const GraphsComponent: React.FC<GraphsComponentProps> = ({ selectedMachine, sele
       
       socket.onmessage = (event) => {
         const newData = JSON.parse(event.data);
-        const filteredData = newData
+        const latestData = newData
           .filter((item: any) => item.machine_id === Number(id) && item.plant_id === Number(selectedPlant))
           .map((item: any) => ({
             ...item,
             time: moment(item.time).valueOf(),
-          }));
-        setRealtimeData(filteredData);
+          }))[0]; // Get the latest data entry
+
+          if (latestData) {
+            setRealtimeData(prevData => ({
+              ...prevData,
+              [id]: latestData,
+            }));
+          }
       };
 
       socket.onclose = (event) => {
@@ -39,24 +45,26 @@ const GraphsComponent: React.FC<GraphsComponentProps> = ({ selectedMachine, sele
     };
   }, [selectedMachine, selectedPlant]);
 
+  // Combine all machine data into a single array
+  const combinedData = Object.values(realtimeData);
+
   return (
     <>
-        <Grid item xs={12} md={6}>
-            <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['temperature']} realtimeData={realtimeData} />
-        </Grid>
-        <Grid item xs={12} md={6}>
-            <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['humidity']} realtimeData={realtimeData} />
-        </Grid>
-        <Grid item xs={12} md={6}>
-            <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['vibration']} realtimeData={realtimeData} />
-        </Grid>
-        <Grid item xs={12} md={6}>
-            <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} realtimeData={realtimeData} />
-        </Grid>
-        <Grid item xs={12}>
-        <DataTableComponent selectedMachine={selectedMachine} realtimeData={realtimeData} />
-        </Grid>
-          
+      <Grid item xs={12} md={6}>
+        <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['temperature']} realtimeData={combinedData} />
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['humidity']} realtimeData={combinedData} />
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['vibration']} realtimeData={combinedData} />
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <LineChartComponent machineId={selectedMachine} plantId={selectedPlant} parameters={['power_supply']} realtimeData={combinedData} />
+      </Grid>
+      <Grid item xs={12}>
+        <DataTableComponent selectedMachine={selectedMachine} realtimeData={combinedData} />
+      </Grid>
     </>
   );
 };
