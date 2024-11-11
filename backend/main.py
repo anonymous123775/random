@@ -38,6 +38,7 @@ async def startup_event():
     create_filtered_database()
     asyncio.create_task(kpi_scheduler())
     asyncio.create_task(points_scheduler())
+    pass
     
 async def kpi_scheduler():
     while True:
