@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status , WebSocket, Query
+from fastapi import Depends, FastAPI, HTTPException, status , WebSocket, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -24,7 +24,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Add your frontend URL here
+    allow_origins=["http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],  
     allow_headers=["*"],  
@@ -32,23 +32,20 @@ app.add_middleware(
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# Startup event to run KPI calculation
 @app.on_event("startup")
 async def startup_event():
     create_filtered_database()
     asyncio.create_task(kpi_scheduler())
     asyncio.create_task(points_scheduler())
-    pass
     
 async def kpi_scheduler():
     while True:
         await calculate_kpis()
-        await asyncio.sleep(900)  # Sleep for 15 minutes
+        await asyncio.sleep(900) 
         
 async def points_scheduler():
-    while True:
-        await continuous_filter_and_store()
-        await asyncio.sleep(60)  # Sleep for 15 minutes        
+    # await continuous_filter_and_store() 
+    pass  
         
 @app.put("/api/user/{user_id}", response_model=schemas.User)
 async def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_active_user)):
@@ -66,8 +63,15 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires)
-    print(access_token)
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token = auth.create_refresh_token(data={"sub": user.username})
+    print("token generated /token")
+    print({"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"})
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+@app.post("/refresh-token", response_model=schemas.Token)
+async def refresh_access_token_endpoint(refreshToken: str , db: Session = Depends(database.get_db)):
+    print(f"refresh token generated /refresh-token , {refreshToken}")
+    return auth.refresh_access_token(refreshToken, db)
 
 @app.post("/users/", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
@@ -132,14 +136,11 @@ def get_notifications(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_active_user)
 ):
-    # Query notifications
     query = db.query(models.Notification).order_by(desc(models.Notification.timestamp))
     
-    # Apply severity filter if provided
     if severity:
         query = query.filter(models.Notification.severity == severity)
     
-    # Fetch results with a limit
     notifications = query.limit(100).all()
     return notifications
 

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Label, Text } from 'recharts';
 import { Box, Typography, Container, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, styled, CircularProgress } from '@mui/material';
-import { fetchMachineFailuresPlant, getPlantCount } from '../Services/api';
 
 interface MachineStatus {
   machine_id: number;
@@ -18,6 +17,17 @@ interface WebSocketData {
 interface MachineStatusProps {
   selectedPlant: string;
   loading: boolean;
+}
+
+interface CustomLabelProps {
+  cx: any;
+  cy: any;
+  midAngle: any;
+  innerRadius: any;
+  outerRadius: any;
+  percent: any;
+  name: any;
+  index: any;
 }
 
 const StatusCell = styled(TableCell)(({ theme }) => ({
@@ -75,6 +85,39 @@ const WebSocketPieChartComponent: React.FC<MachineStatusProps> = ({ selectedPlan
 
   const COLORS = ['#00C49F', '#FFBB28', '#FF8042'];
 
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, index }: CustomLabelProps) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius);
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    const offset = 10;
+    const adjustedX = x + (x > cx ? offset : -offset);
+    const adjustedY = y + (y > cy ? offset : -offset);
+
+    const zeroPercentPositions = [
+      { x: cx + 100, y: cy + 10 },
+      { x: cx + 100, y: cy - 20 },
+      { x: cx + 100, y: cy + 30 },
+    ];
+
+    const position = percent === 0 ? zeroPercentPositions[index % zeroPercentPositions.length] : { x: adjustedX, y: adjustedY };
+
+    return (
+      <text
+        x={position.x}
+        y={position.y}
+        fill={COLORS[index % COLORS.length]}
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+      >
+        {`${name}: ${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+  
+
+
   return (
     <Container>
       <Paper elevation={3} sx={{ padding: 2, marginBottom: 3 }}>
@@ -96,7 +139,7 @@ const WebSocketPieChartComponent: React.FC<MachineStatusProps> = ({ selectedPlan
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    label={renderCustomLabel}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"

@@ -19,10 +19,10 @@ class Notification(Base):
     machine_id = Column(Integer)
     plant_id = Column(Integer)
     parameter = Column(String)
-    threshold = Column(Float)  # Changed to Float for numerical consistency
+    threshold = Column(Float)
     timestamp = Column(DateTime, default=datetime.utcnow)
     status = Column(String, default="unresolved")
-    severity = Column(String)  # Add this line to store severity level
+    severity = Column(String)
     
 class KPI(Base):
     __tablename__ = "kpis"
@@ -34,7 +34,7 @@ class KPI(Base):
     downtime = Column(Float, nullable=True)
     failure_rate = Column(Float, nullable=True)
     num_alerts_triggered = Column(Integer, nullable=True)
-    last_processed_timestamp = Column(DateTime, default=datetime.utcnow)  # Added default value
+    last_processed_timestamp = Column(DateTime, default=datetime.utcnow)  
     
     def __repr__(self):
         return (f"<KPI(plant_id={self.plant_id}, machine_id={self.machine_id}, "

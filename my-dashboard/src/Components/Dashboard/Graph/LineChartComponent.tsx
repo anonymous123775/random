@@ -35,7 +35,7 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
         time: moment(item.time).valueOf(),
       }));
       const uniqueData = Array.from(new Map(combinedData.map(item => [item.time, item])).values());
-      console.log('Fetched Data:', uniqueData); 
+      // console.log('Fetched Data:', uniqueData); 
       setData(uniqueData);
       setLoading(false);
     } catch (error) {
@@ -50,7 +50,7 @@ const LineChartComponent: React.FC<LineChartComponentProps> = ({ machineId, plan
   useEffect(() => {
     setData((prevData) => {
         const combinedData = [...prevData, ...realtimeData];
-        console.log(realtimeData);
+        // console.log(realtimeData);
         const uniqueData = Array.from(new Map(combinedData.map(item => [item.time, item])).values());
         return uniqueData;
       });

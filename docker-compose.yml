@@ -72,6 +72,19 @@ services:
     networks:
       - my_network
 
+  data_processor:
+    build: ./backend/data_processor
+    container_name: data_processor
+    volumes:
+      - ./backend/data_processor/test.db:/app/test.db
+      - ./backend/data_processor:/app
+    depends_on:
+      - influxdb
+    env_file:
+      - .env
+    networks:
+      - my_network
+
   frontend:
     build:
       context: ./my-dashboard

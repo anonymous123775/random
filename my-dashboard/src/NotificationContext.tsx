@@ -46,7 +46,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   useEffect(() => {
     const fetchNotifications = async () => {
       const data: Notification[] = await fetchNotificationsTyped();
-      setRawNotifications(data);
       const grouped = groupNotificationsByPlantAndMachine(data);
       setGroupedNotifications(grouped);
     };

@@ -12,19 +12,57 @@ const getAuthHeaders = () => {
     };
 };
 
+const axiosInstance = axios.create({
+    baseURL: API_URL,
+});
+
+axiosInstance.interceptors.response.use(
+    response => response,
+    async error => {
+        const originalRequest = error.config;
+        if (error.response.status === 401 && !originalRequest._retry) {
+            // console.log("token expired 401 error")
+            originalRequest._retry = true;
+            const refreshToken = localStorage.getItem('refresh_token');
+            // console.log("refreshToken : ", refreshToken)
+            try {
+                const response = await axios.post(`${API_URL}/refresh-token`, 
+                    { refreshToken: refreshToken },
+                    {
+                        headers: {'Content-Type': 'application/json'},
+                        params: {refreshToken,}
+                    });
+                if (response.status === 200) {
+                    // console.log("new token recived, ", response)
+                    const newToken = response.data.access_token;
+                    localStorage.setItem('token', newToken);
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+                    originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                    return axiosInstance(originalRequest);
+                }
+            }
+            catch(refreshError) {
+                console.error('Failed to refresh token:', refreshError);
+                return Promise.reject(refreshError);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const loginUser = async (username: string, password: string) => {
     const formData = new URLSearchParams();
     formData.append('username', username);
     formData.append('password', password);
 
-    const response = await axios.post(`${API_URL}/token`, formData, {
+    const response = await axiosInstance.post(`/token`, formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
     });
-
-    const token = response.data.access_token;
-    localStorage.setItem('token', token);  // Store the token
+    const { access_token, refresh_token } = response.data;
+    localStorage.setItem('token', access_token);
+    localStorage.setItem('refresh_token', refresh_token);
     return response;
 };
 
@@ -34,18 +72,17 @@ export const registerUser = async (userData: { username: string, password: strin
 };
 
 export const getMachineCount = async () => {
-    const response = await axios.get(`${API_URL}/machine-count`, getAuthHeaders());
+    const response = await axiosInstance.get(`/machine-count`, getAuthHeaders());
     return response.data;
 };
 
 export const getPlantCount = async () => {
-    const response = await axios.get(`${API_URL}/plant-count`, getAuthHeaders());
+    const response = await axiosInstance.get(`/plant-count`, getAuthHeaders());
     return response.data;
 };
 
-// New API calls for fetching historical and real-time data
 export const fetchHistoricalData = async (machineId: string, plantId: string, timeframe: string) => {
-    const response = await axios.get(`${API_URL}/historical-data`, {
+    const response = await axiosInstance.get(`/historical-data`, {
         headers: {
             ...getAuthHeaders().headers,
         },
@@ -56,8 +93,8 @@ export const fetchHistoricalData = async (machineId: string, plantId: string, ti
 
 
 export const fetchHistoricalMachineData = async (machineId: string, plantId: string, startTime: Date|null, endTime: Date|null) => {
-    // console.log(machineId,plantId,startTime,endTime)
-    const response = await axios.get(`${API_URL}/historical-data-start-end`, {
+
+    const response = await axiosInstance.get(`/historical-data-start-end`, {
         headers: {
             ...getAuthHeaders().headers,
         },
@@ -67,8 +104,8 @@ export const fetchHistoricalMachineData = async (machineId: string, plantId: str
 };
 
 export const fetchHistoricalMachineDataParam = async (machineId: string, plantId: string, param: string ,startTime: Date|null, endTime: Date|null) => {
-    // console.log(machineId,plantId,startTime,endTime)
-    const response = await axios.get(`${API_URL}/historical-data-start-end-param`, {
+
+    const response = await axiosInstance.get(`/historical-data-start-end-param`, {
         headers: {
             ...getAuthHeaders().headers,
         },
@@ -89,15 +126,13 @@ export interface Notification {
     severity: string;
 }
 
-// Fetch notifications with type safety
 export const fetchNotificationsTyped = async (): Promise<Notification[]> => {
-    const response = await axios.get(`${API_URL}/api/notifications`, getAuthHeaders());
-    // console.log("fetched notifications : ",response.data)
+    const response = await axiosInstance.get(`/api/notifications`, getAuthHeaders());
     return response.data;
 };
 
 export const fetchNumFailures = async (month: number, year: number, machineId: string, plantId: string) => {
-    const response = await axios.get(`${API_URL}/api/num-failures`, {
+    const response = await axiosInstance.get(`/api/num-failures`, {
         headers: getAuthHeaders().headers,
         params: { month, year, machine_id: machineId, plant_id: plantId },
     });
@@ -106,47 +141,43 @@ export const fetchNumFailures = async (month: number, year: number, machineId: s
 
 export const fetchUserData = async () => {
     try {
-        const response = await axios.get(`${API_URL}/users/me/`, getAuthHeaders());
+        const response = await axiosInstance.get(`/users/me/`, getAuthHeaders());
         return response.data;
     } catch (error) {
         console.error('Failed to fetch user data:', error);
-        throw error; // Rethrow or handle it as per your application's logic
+        throw error;
     }
 };
 
 
 export const updateUserData = async (userData: any) => {
-    const response = await axios.put(`${API_URL}/api/user/${userData.id}`, userData, getAuthHeaders());
+    const response = await axiosInstance.put(`/api/user/${userData.id}`, userData, getAuthHeaders());
     return response.data;
 };
 
 
 export const fetchMachineKpis = async (machineId: string , plantId: string) => {
     try{
-        const response = await axios.get(`${API_URL}/api/machine-kpis`,{
+        const response = await axiosInstance.get(`/api/machine-kpis`,{
             headers: getAuthHeaders().headers,
             params: { machine_id : machineId, plant_id : plantId},
         });
-        // console.log("Machine KPI : ",response.data)
         return response.data
     }
     catch(error){
-        // console.log('Failed to fetch Machine Kpis : ', error);
         throw error;
     }
 }
 
 export const fetchKpiNotRealTime = async (machineId: string , plantId: string, startTime: Date | null, endTime: Date | null) => {
     try{
-        const response = await axios.get(`${API_URL}/api/machine-kpis-not-realtime`,{
+        const response = await axiosInstance.get(`/api/machine-kpis-not-realtime`,{
             headers: getAuthHeaders().headers,
             params: { machine_id : machineId, plant_id : plantId, startTime: startTime, endTime: endTime},
         });
-        // console.log("Machine KPI Not real time : ",response.data)
         return response.data
     }
     catch(error){
-        // console.log('Failed to fetch Machine Kpis : ', error);
         throw error;
     }
 }
@@ -154,15 +185,13 @@ export const fetchKpiNotRealTime = async (machineId: string , plantId: string, s
 
 export const fetchMachineFailuresPlant = async (plantId: string) => {
     try{
-        const response = await axios.get(`${API_URL}/api/num-machine-failures`,{
+        const response = await axiosInstance.get(`/api/num-machine-failures`,{
             headers: getAuthHeaders().headers,
             params: { plant_id : plantId},
         });
-        // console.log("Machine KPI : ",response.data)
         return response.data
     }
     catch(error){
-        // console.log('Failed to fetch Machine Kpis : ', error);
         throw error;
     }
 }

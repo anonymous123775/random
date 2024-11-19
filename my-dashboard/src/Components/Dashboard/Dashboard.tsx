@@ -150,11 +150,11 @@ const Dashboard: React.FC = () => {
                 },
               },
             }}>
-            <Tab label="Machine View" />
             <Tab label="Plant View" />
+            <Tab label="Machine View" />
           </Tabs>
         </Box>
-        {selectedTab === 0 && (
+        {selectedTab === 1 && (
           <FormControlLabel
             control={
               <Switch checked={realTime} onChange={handleRealTimeChange} 
@@ -175,7 +175,7 @@ const Dashboard: React.FC = () => {
           />
         )}
         </Box>
-        {selectedTab === 0 && (
+        {selectedTab === 1 && (
           <Grid container spacing={3}>
             {/* Machine View Components */}
             <Grid item xs={12} md={realTime?6:3}>
@@ -311,7 +311,7 @@ const Dashboard: React.FC = () => {
             </Grid>
           </Grid>
         )}
-        {selectedTab === 1 && (
+        {selectedTab === 0 && (
           <PlantViewComponent plantId={selectedPlant} />
         )}
       </Box>

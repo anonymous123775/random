@@ -26,7 +26,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     try {
       if (isLogin) {
         const response = await loginUser(formData.username, formData.password);
-        console.log("Login successful:", response);
+        console.log("Login successful");
         onAuthSuccess();
         toast.success("Login successful!");
       } else {
