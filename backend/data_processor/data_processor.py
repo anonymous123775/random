@@ -28,7 +28,7 @@ async def filter_and_store_data(machine_id: int, plant_id: int, data):
     previous_values = {}
     
     for param in filtered_data.keys():
-        query = f'SELECT "{param}" FROM "{param}" WHERE "machine_id" = {machine_id} AND "plant_id" = {plant_id}'
+        query = f'SELECT "{param}" FROM "{param}" WHERE "machine_id" = {machine_id} AND "plant_id" = {plant_id} ORDER BY time DESC LIMIT 1'
         result = filtered_client.query(query)
         if result:
             last_point = list(result.get_points())[0]
@@ -174,7 +174,7 @@ async def continuous_filter_and_store():
                 except Exception as e:
                     print(f"An error occurred while querying InfluxDB: {e}")
                     
-        await asyncio.sleep(5)
+        await asyncio.sleep(1)
 
 if __name__ == "__main__":
     asyncio.run(continuous_filter_and_store())
