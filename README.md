@@ -25,4 +25,3 @@ docker-compose logs -f
 ## Demo Credentials
 - **Username**: Demo
 - **Password**: 12345
-```
