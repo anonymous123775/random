@@ -1,0 +1,47 @@
+To Set up Kubernetes:
+
+1 - Install Chocolatey: Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+2 - Install Kubernetes-cli:  choco install kubernetes-cli
+3 - Check kubectl installation using the following command : kubectl version --client
+	Sample Output :
+		Client Version: v1.30.2
+		Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
+4 - Navigate to userprofile: C:\Windows\system32>cd %USERPROFILE%
+5 - Make a directory in it : mkdir .kube
+6 - Go to directory and make a txt file in it with name "config" with no file extenshion
+7 - Install Minikube: choco install minikube
+8 - To start: minikube start --driver=hyperv
+
+9 - To verify everything is working run : minikube status
+Success if response:
+	minikube
+	type: Control Plane
+	host: Running
+	kubelet: Running
+	apiserver: Running
+	kubeconfig: Configured
+10 - if after running the status command the status is undefined or something like that then -> hyper - v manager -> stop the virtual machine named minicube 
+Also go to task manager and remove the process related with hyper-v manager or minikube 
+Then run the command : minikube delete
+Then restart the minikube virtul machine using : minikube start --driver=hyperv
+11 - Once success to create a deployment we need to first push the image on docker hub:
+	build the docker image locally using : docker build -t name_of_image .
+	push the image on docker hub : docker tag name_of_image username/name_of_image
+					docker push username/name_of_image
+12 - After Sccess push to docker hub :
+	docker create deployment name_of_deployment --image=username/name_of_image
+13 - Verify the status using : kubectl get deployments -> In this you should see the 1/1 Ready
+Also same thing can be verified by running: minikube dashboard
+14 - To expose a deployment to be accessed by us : kubectl expose deployment name_of_deployment --type=LoadBalancer --port=8080
+You can have a look at services by using: kubectl get services -> but when running locally you may see that external ip is not avaliable so to get one
+just use : minikube service name_of_deployment
+15 - For Scaling a deployment : kubectl scale deployment/first-app --replicas=3
+16 - To Update the kube deployment with new image version:
+	docker build -t username/name_of_image:version .
+	docker push username/name_of_image:version
+	kubectl set image deployment/name_of_deployment kub-first-app=piyushbonde/name_of_image:version
+To check the rollout status : kubectl rollout status deployments/name_of_deployment
+17 - To rollback a deployment :
+	kubectl rollout undo deployment/first-app
+18 - To see a list of versions of rollout : kubectl rollout history deployment/first-app
+19 - To rollback to a version :  kubectl rollout undo deployment/first-app --to-revision=1
