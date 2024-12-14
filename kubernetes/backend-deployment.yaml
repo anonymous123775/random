@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      initContainers:
+      - name: init-backend
+        image: busybox
+        command: ['sh', '-c', 'touch /mnt/test.db']
+        volumeMounts:
+        - name: backend-storage
+          mountPath: /mnt
+      containers:
+      - name: backend
+        image: piyushbonde/iot_dashboard_project:backend
+        ports:
+        - containerPort: 8000
+        env:
+        - name: INFLUXDB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: INFLUXDB_NAME
+        - name: INFLUXDB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: INFLUXDB_HOST
+        - name: REFRESH_TOKEN_EXPIRE_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: REFRESH_TOKEN_EXPIRE_DAYS
+        - name: email
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: email
+        - name: MONGO_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MONGO_URL
+        - name: SECRET_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: SECRET_KEY
+        - name: ALGORITHM
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: ALGORITHM
+        - name: SQLALCHEMY_DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: SQLALCHEMY_DATABASE_URL
+        - name: MQTT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: MQTT_PASSWORD
+        - name: password
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: password
+        volumeMounts:
+        - name: backend-storage
+          mountPath: /app/test.db
+          subPath: test.db
+      volumes:
+      - name: backend-storage
+        persistentVolumeClaim:
+          claimName: backend-app-pvc

@@ -182,6 +182,10 @@ async def handle_notifications(point, websocket):
             else:
                 last_notification_states[key] = value  
 
+    cityNames = ['New York', 'Tokyo', 'London', 'Paris', 'Sydney', 'Dubai', 'Toronto', 'Berlin', 'Singapore', 'Rio de Janeiro']
+    machineNames = ['Allen-Bradley', 'FactoryTalk', 'PowerFlex', 'ControlLogix', 'CompactLogix', 'MicroLogix', 'GuardLogix', 'PanelView', 'Kinetix', 'Stratix']
+
+
     for notification in notifications:
         await store_notification(notification)
         await websocket.send_json({"notification": notification})
@@ -190,12 +194,12 @@ async def handle_notifications(point, websocket):
 
         if notification["severity"] in ["error","info"]:
             for email in email_list:
-                subject = f"Warning for Machine {notification['machine_id']}"
+                subject = f"Warning for Plant {cityNames[int(notification['plant_id']) - 1 % len(cityNames) ]} --> Machine {machineNames[int(notification['machine_id']) - 1 % len(machineNames) ]}"
                 body = f"""
                     Warning Notification:
 
-                    Machine ID: {notification['machine_id']}
-                    Plant ID: {notification['plant_id']}
+                    Machine Name: {machineNames[int(notification['machine_id']) - 1 % len(machineNames) ]}
+                    Plant Name: {cityNames[int(notification['plant_id']) - 1 % len(cityNames) ]}
                     Parameter: {notification['parameter']}
                     Current Value: {notification['threshold']}
 

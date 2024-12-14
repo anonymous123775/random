@@ -19,6 +19,9 @@ interface KPIData {
   num_alerts_triggered?: number;
 }
 
+const cityNames = ['New York', 'Tokyo', 'London', 'Paris', 'Sydney', 'Dubai', 'Toronto', 'Berlin', 'Singapore', 'Rio de Janeiro'];
+const machineNames = ['Allen-Bradley', 'FactoryTalk', 'PowerFlex', 'ControlLogix', 'CompactLogix', 'MicroLogix', 'GuardLogix', 'PanelView', 'Kinetix', 'Stratix'];
+
 const Dashboard: React.FC = () => {
   const [selectedMachine, setSelectedMachine] = useState<string[]>([]);
   const [selectedPlant, setSelectedPlant] = useState<string>('1');
@@ -192,8 +195,8 @@ const Dashboard: React.FC = () => {
                     onChange={handlePlantChange}
                   >
                     {plants.map((plant, index) => (
-                      <MenuItem key={index} value={plant}>
-                        {plant}
+                      <MenuItem key={plant} value={plant}>
+                        {cityNames[Number(plant) - 1 % cityNames.length]}
                       </MenuItem>
                     ))}
                   </Select>
@@ -213,12 +216,12 @@ const Dashboard: React.FC = () => {
                     multiple
                     value={selectedMachine}
                     onChange={handleMachineChange}
-                    renderValue={(selected) => selected.join(', ')}
+                    renderValue={(selected) => selected.map(machine => machineNames[Number(machine) - 1 % machineNames.length]).join(', ')}
                   >
                     {machines.map((machine, index) => (
-                      <MenuItem key={index} value={machine}>
+                      <MenuItem key={machine} value={machine}>
                         <Checkbox checked={selectedMachine.indexOf(machine) > -1} />
-                        <ListItemText primary={`Machine ${index + 1}`} />
+                        <ListItemText primary={machineNames[Number(machine)-1 % machineNames.length]} />
                       </MenuItem>
                     ))}
                   </Select>

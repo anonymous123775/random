@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-generator
+  template:
+    metadata:
+      labels:
+        app: data-generator
+    spec:
+      containers:
+      - name: data-generator
+        image: piyushbonde/iot_dashboard_project:data-generator
+        env:
+        - name: MQTT_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MQTT_USERNAME
+        - name: MQTT_BROKER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MQTT_BROKER
+        - name: MQTT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: MQTT_PASSWORD

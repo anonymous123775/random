@@ -23,6 +23,8 @@ interface DataTableComponentProps {
   parameter: string[];
 }
 
+const machineNames = ['Allen-Bradley', 'FactoryTalk', 'PowerFlex', 'ControlLogix', 'CompactLogix', 'MicroLogix', 'GuardLogix', 'PanelView', 'Kinetix', 'Stratix'];
+
 const DataTableComponentNotRealtime: React.FC<DataTableComponentProps> = ({ selectedMachine, plantId, startTime, endTime, parameter }) => {
   const [dataByMachine, setDataByMachine] = useState<RealtimeData[]>([]);
   const [loadingState, setLoadingState] = useState(false);
@@ -55,8 +57,9 @@ const DataTableComponentNotRealtime: React.FC<DataTableComponentProps> = ({ sele
     () => [
       {
         accessorKey: 'machine_id',
-        header: 'Machine ID',
+        header: 'Machine Name',
         size: 150,
+        Cell: ({ cell }) => machineNames[Number(cell.getValue()) - 1 % machineNames.length], 
       },
       {
         accessorKey: 'time',

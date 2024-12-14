@@ -85,16 +85,29 @@ services:
     networks:
       - my_network
 
+  # frontend:
+  #   build:
+  #     context: ./my-dashboard
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./my-dashboard:/app
+  #   networks:
+  #     - my_network
+
   frontend:
     build:
-      context: ./my-dashboard
+      context: ./frontend
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     depends_on:
       - backend
     volumes:
-      - ./my-dashboard:/app
+      - ./frontend/src:/app/src
     networks:
       - my_network
 

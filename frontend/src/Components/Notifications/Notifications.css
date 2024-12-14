@@ -1,0 +1,95 @@
+/* src/Components/Notifications/Notifications.css */
+.notifications-container {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.filter-container {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-label {
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+#severity-filter {
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+#severity-filter:hover {
+  border-color: #888;
+}
+
+/* Notifications list */
+.notifications-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notification-item {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background-color 0.3s, transform 0.2s;
+  position: relative;
+}
+
+.notification-item:hover {
+  background-color: #f1f1f1;
+  transform: translateY(-2px);
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.notification-plant-machine,
+.notification-parameters,
+.notification-timestamp {
+  margin-right: 20px;
+}
+
+.notification-parameters {
+  color: #ff6347; /* Change to a more readable color */
+  font-weight: bold; /* Emphasize the parameters */
+}
+
+.notification-timestamp {
+  color: #888;
+  font-size: 0.9em; /* Slightly smaller font size for timestamp */
+}
+
+/* Severity-specific styles */
+.notification-warning {
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+}
+
+.notification-error {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+.notification-info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+}

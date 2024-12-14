@@ -132,7 +132,7 @@ async def get_machine_and_plant_count(current_user: dict = Depends(auth.get_curr
 
 @app.get("/api/notifications")
 def get_notifications(
-    severity: Optional[str] = Query(None, enum=["warning", "error", "info"]),  # Optional severity filter
+    severity: Optional[str] = Query(None, enum=["warning", "error", "info"]),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_active_user)
 ):
@@ -141,7 +141,7 @@ def get_notifications(
     if severity:
         query = query.filter(models.Notification.severity == severity)
     
-    notifications = query.limit(100).all()
+    notifications = query.limit(10000).all()
     return notifications
 
 @app.get("/api/num-failures")

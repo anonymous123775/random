@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  INFLUXDB_NAME: "iot_machine_data"
+  MQTT_USERNAME: "def"
+  MQTT_BROKER: "mqtt"
+  INFLUXDB_HOST: "influxdb"
+  REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  email: "piyushbonde006@gmail.com"
+  MONGO_URL: "mongodb+srv://commonuser:commonuser123@cluster0.czzze.mongodb.net/Logs?retryWrites=true&w=majority&appName=Cluster0"
+  SECRET_KEY: "83daa0256a2289b0fb23693bf1f6034d44396675749244721a2b20e896e11662"
+  ALGORITHM: "HS256"
+  SQLALCHEMY_DATABASE_URL: "sqlite:///./test.db"

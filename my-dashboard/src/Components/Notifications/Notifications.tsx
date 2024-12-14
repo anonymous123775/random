@@ -89,6 +89,10 @@ interface Notification {
   timestamp: string;
 }
 
+const cityNames = ['New York', 'Tokyo', 'London', 'Paris', 'Sydney', 'Dubai', 'Toronto', 'Berlin', 'Singapore', 'Rio de Janeiro'];
+const machineNames = ['Allen-Bradley', 'FactoryTalk', 'PowerFlex', 'ControlLogix', 'CompactLogix', 'MicroLogix', 'GuardLogix', 'PanelView', 'Kinetix', 'Stratix'];
+
+
 const NotificationsTable: React.FC = () => {
   const { notifications } = useContext(NotificationContext);
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
@@ -115,13 +119,15 @@ const NotificationsTable: React.FC = () => {
     () => [
       {
         accessorKey: 'plantId',
-        header: 'Plant ID',
+        header: 'Plant Name',
         size: 50,
+        Cell: ({ cell }) => cityNames[Number(cell.getValue()) - 1 % cityNames.length], 
       },
       {
         accessorKey: 'machineId',
-        header: 'Machine ID',
+        header: 'Machine Name',
         size: 50,
+        Cell: ({ cell }) => machineNames[Number(cell.getValue()) - 1 % machineNames.length], 
       },
       {
         accessorKey: 'parameters',

@@ -1,0 +1,115 @@
+/* Auth.css */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 60px); /* Adjust based on the height of your navbar */
+  padding: 20px;
+  background-color: #f7f7f7; /* Light beige background */
+  font-family: 'Montserrat', sans-serif;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  padding: 30px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-container h2 {
+  margin-bottom: 20px;
+  color: #333;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  text-align: center;
+}
+
+.form-container form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-container label {
+  margin-bottom: 5px;
+  color: #555;
+  font-weight: bold;
+}
+
+.form-container input {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: border-color 0.3s;
+}
+
+.form-container input:focus {
+  border-color: #671376;
+  outline: none;
+}
+
+.form-container button {
+  padding: 10px;
+  background-color: #671376;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-weight: bold;
+}
+
+.form-container button:hover {
+  background-color: #ac62b9;
+}
+
+.toggle-btn {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  color: #671376;
+  cursor: pointer;
+  transition: color 0.3s, text-decoration 0.3s;
+  font-size: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: #007bff;
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 0.3s ease-out;
+}
+
+/* .toggle-btn:hover {
+  color: #0056b3;
+} */
+
+.toggle-btn:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}

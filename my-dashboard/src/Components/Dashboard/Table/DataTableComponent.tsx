@@ -22,6 +22,8 @@ interface DataTableComponentProps {
   realtimeData: RealtimeData[];
 }
 
+const machineNames = ['Allen-Bradley', 'FactoryTalk', 'PowerFlex', 'ControlLogix', 'CompactLogix', 'MicroLogix', 'GuardLogix', 'PanelView', 'Kinetix', 'Stratix'];
+
 const DataTableComponent: React.FC<DataTableComponentProps> = ({ selectedMachine, realtimeData }) => {
   const [dataByMachine, setDataByMachine] = useState<{ [key: string]: RealtimeData }>({});
 
@@ -44,8 +46,9 @@ const DataTableComponent: React.FC<DataTableComponentProps> = ({ selectedMachine
     () => [
       {
         accessorKey: 'machine_id',
-        header: 'Machine ID',
+        header: 'Machine Name',
         size: 150,
+        Cell: ({ cell }) => machineNames[Number(cell.getValue()) - 1 % machineNames.length], 
       },
       {
         accessorKey: 'time',

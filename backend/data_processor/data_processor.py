@@ -174,7 +174,7 @@ async def continuous_filter_and_store():
                 except Exception as e:
                     print(f"An error occurred while querying InfluxDB: {e}")
                     
-        await asyncio.sleep(1)
+        await asyncio.sleep(300)
 
 if __name__ == "__main__":
     asyncio.run(continuous_filter_and_store())

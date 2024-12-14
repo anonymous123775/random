@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-processor
+  template:
+    metadata:
+      labels:
+        app: data-processor
+    spec:
+      containers:
+      - name: data-processor
+        image: piyushbonde/iot_dashboard_project:data-processor
+        env:
+        - name: INFLUXDB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: INFLUXDB_HOST
+        - name: SQLALCHEMY_DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: SQLALCHEMY_DATABASE_URL
+        volumeMounts:
+        - name: data-processor-db
+          mountPath: /app/test.db
+          subPath: test.db
+      volumes:
+      - name: data-processor-db
+        persistentVolumeClaim:
+          claimName: data-processor-db-pvc
